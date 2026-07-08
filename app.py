@@ -1,8 +1,11 @@
-from flask import Flask, jsonify, render_template
-from flask_login import LoginManager
+from pathlib import Path
+
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask_login import LoginManager, current_user, login_user, logout_user
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import db
+from models import User, db
 
 
 login_manager = LoginManager()
@@ -11,7 +14,10 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return None
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
 
 
 def create_app(config_class=Config):
@@ -20,6 +26,10 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    with app.app_context():
+        db.create_all()
 
     @app.get("/health")
     def health():
@@ -56,13 +66,59 @@ def create_app(config_class=Config):
     def settings():
         return placeholder("设置")
 
-    @app.get("/login")
+    @app.route("/login", methods=["GET", "POST"])
     def login():
+        if current_user.is_authenticated:
+            return redirect(url_for("feed"))
+
+        if request.method == "POST":
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            user = User.query.filter_by(username=username).first()
+
+            if not user or not check_password_hash(user.password_hash, password):
+                flash("Invalid username or password.", "error")
+                return placeholder("登录")
+
+            login_user(user)
+            return redirect(url_for("feed"))
+
         return placeholder("登录")
 
-    @app.get("/register")
+    @app.route("/register", methods=["GET", "POST"])
     def register():
+        if current_user.is_authenticated:
+            return redirect(url_for("feed"))
+
+        if request.method == "POST":
+            username = request.form.get("username", "").strip()
+            display_name = request.form.get("display_name", "").strip()
+            password = request.form.get("password", "")
+
+            if not username or not display_name or not password:
+                flash("Username, display name, and password are required.", "error")
+                return placeholder("注册")
+
+            if User.query.filter_by(username=username).first():
+                flash("Username is already taken. Please choose another one.", "error")
+                return placeholder("注册")
+
+            user = User(
+                username=username,
+                display_name=display_name,
+                password_hash=generate_password_hash(password),
+            )
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            return redirect(url_for("feed"))
+
         return placeholder("注册")
+
+    @app.post("/logout")
+    def logout():
+        logout_user()
+        return redirect(url_for("login"))
 
     return app
 
