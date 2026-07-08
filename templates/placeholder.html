@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+<!-- ==================== 登录/注册独立页面内容 ==================== -->
+{% block auth_content %}
+    {% if request.path == '/login' %}
+        <div class="auth-container">
+            <div class="auth-logo">myownX</div>
+            <h2 class="auth-title">登录到 myownX</h2>
+            <form action="#" method="GET" onsubmit="event.preventDefault(); window.location.href='/feed';">
+                <div class="form-group">
+                    <label class="form-label" for="login-username">用户名</label>
+                    <input type="text" id="login-username" name="username" class="form-control-custom" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-password">密码</label>
+                    <input type="password" id="login-password" name="password" class="form-control-custom" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn-auth-submit">登录</button>
+            </form>
+            <div class="auth-footer">
+                还没有账号？ <a href="/register">立即注册</a>
+            </div>
+        </div>
+    {% elif request.path == '/register' %}
+        <div class="auth-container">
+            <div class="auth-logo">myownX</div>
+            <h2 class="auth-title">创建你的账号</h2>
+            <form action="#" method="GET" onsubmit="event.preventDefault(); window.location.href='/login';">
+                <div class="form-group">
+                    <label class="form-label" for="reg-username">用户名</label>
+                    <input type="text" id="reg-username" name="username" class="form-control-custom" placeholder="字母、数字或下划线" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-display-name">昵称</label>
+                    <input type="text" id="reg-display-name" name="display_name" class="form-control-custom" placeholder="请输入展示昵称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-password">密码</label>
+                    <input type="password" id="reg-password" name="password" class="form-control-custom" placeholder="设置你的登录密码" required>
+                </div>
+                <button type="submit" class="btn-auth-submit">注册</button>
+            </form>
+            <div class="auth-footer">
+                已经有账号？ <a href="/login">直接登录</a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+<!-- ==================== PC/手机端中间主信息流内容 ==================== -->
+{% block content %}
+    
+    <!-- 1. 首页 / 信息流页面 -->
+    {% if request.path in ['/', '/feed'] %}
+        <!-- PC端发帖框 -->
+        <div class="post-creator-box d-none d-md-flex">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-creator-avatar" alt="用户头像">
+            <div class="post-creator-form">
+                <textarea class="post-creator-textarea" placeholder="有什么新动态？" rows="3"></textarea>
+                <div class="post-creator-toolbar">
+                    <div class="post-creator-actions">
+                        <button class="post-creator-action-btn" title="上传图片"><i class="bi bi-image"></i></button>
+                        <button class="post-creator-action-btn" title="表情"><i class="bi bi-emoji-smile"></i></button>
+                        <button class="post-creator-action-btn" title="定位"><i class="bi bi-geo-alt"></i></button>
+                    </div>
+                    <button class="btn-post-submit">发布</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 动态卡片列表 -->
+        <div class="post-feed">
+            <!-- 动态 1：文字类型 -->
+            <article class="post-card">
+                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="post-card-avatar" alt="头像">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">韩梅梅</span>
+                        <span class="post-author-handle">@hanmeimei</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">2小时前</span>
+                    </div>
+                    <p class="post-card-text">今天第一天使用 myownX！这个社交网络的界面真的太好看了，有种 X.com 的高级感，还有毛玻璃效果！大家快来关注我呀~ 😄✨</p>
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>12</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">5</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">24</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 动态 2：图片类型 -->
+            <article class="post-card">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="post-card-avatar" alt="头像">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">李雷</span>
+                        <span class="post-author-handle">@lilei</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">4小时前</span>
+                    </div>
+                    <p class="post-card-text">分享一张今天拍的风景照，天气真好。☀️🌱 #阳光明媚 #生活小片段</p>
+                    <div class="post-card-media">
+                        <img src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=600&h=400&fit=crop" alt="风景图">
+                    </div>
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>18</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">8</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">45</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 动态 3：转发类型 -->
+            <article class="post-card">
+                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="post-card-avatar" alt="头像">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">掘金小助手</span>
+                        <span class="post-author-handle">@juejin</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">1天前</span>
+                    </div>
+                    <p class="post-card-text">【新手指南】欢迎来到 myownX！这是一个课堂演示专用的本地 Web 社交网络。支持文字、图片、视频分享，还有私信和群聊功能。快去探索吧！🚀</p>
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>110</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">89</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">302</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+    <!-- 2. 发现页 -->
+    {% elif request.path == '/discover' %}
+        <!-- 移动端专属搜索框（PC端隐藏，因为右侧有） -->
+        <div class="p-3 d-md-none border-bottom">
+            <div class="search-wrapper">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="搜索话题与用户">
+            </div>
+        </div>
+
+        <div class="p-3 border-bottom">
+            <h5 class="fw-bold mb-3">为您推荐</h5>
+            <div class="p-4 rounded-4 text-white" style="background-image: linear-gradient(135deg, #1d9bf0, #00ba7c);">
+                <span class="badge bg-white text-primary mb-2">热门</span>
+                <h3>#myownX今日正式上线演示#</h3>
+                <p class="mb-0 text-white-50">本地运行的极简 Web 社交平台</p>
+            </div>
+        </div>
+
+        <!-- 热门趋势（在中间单列显示，方便手机端看） -->
+        <div class="discover-trends">
+            <h5 class="fw-bold p-3 mb-0 border-bottom">热门趋势</h5>
+            
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">科技 · 热门</div>
+                    <div class="fw-bold">#myownX上线啦</div>
+                    <div class="text-muted small">1.2万 动态</div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">查看</button>
+            </div>
+
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">教育 · 热门</div>
+                    <div class="fw-bold">#大一学生的Web社交网络</div>
+                    <div class="text-muted small">854 动态</div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">查看</button>
+            </div>
+
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">编程 · 热门</div>
+                    <div class="fw-bold">#PythonFlask后端开发</div>
+                    <div class="text-muted small">2.3k 动态</div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">查看</button>
+            </div>
+        </div>
+
+    <!-- 3. 通知页 -->
+    {% elif request.path == '/notifications' %}
+        <div class="d-flex border-bottom text-center">
+            <div class="flex-grow-1 py-3 fw-bold border-primary border-bottom-0" style="color: var(--myownx-text); border-bottom: 3px solid var(--myownx-theme) !important;">全部</div>
+            <div class="flex-grow-1 py-3 text-muted" style="cursor: pointer;">未读</div>
+        </div>
+
+        <div class="notifications-feed">
+            <!-- 点赞通知 (未读) -->
+            <div class="notification-card unread">
+                <div class="notification-icon">
+                    <i class="bi bi-heart-fill icon-like-fill"></i>
+                </div>
+                <div class="notification-body">
+                    <div class="notification-users">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="notification-avatar" alt="李雷">
+                    </div>
+                    <div class="notification-content">
+                        <strong>李雷</strong> 赞了你的动态
+                    </div>
+                    <div class="notification-post-preview">
+                        第一条测试动态发布成功！欢迎各位同学在本地进行测试和体验。👨‍💻🚀
+                    </div>
+                </div>
+            </div>
+
+            <!-- 关注通知 (未读) -->
+            <div class="notification-card unread">
+                <div class="notification-icon">
+                    <i class="bi bi-person-fill icon-follow"></i>
+                </div>
+                <div class="notification-body">
+                    <div class="notification-users">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="notification-avatar" alt="韩梅梅">
+                    </div>
+                    <div class="notification-content">
+                        <strong>韩梅梅</strong> 关注了你
+                    </div>
+                </div>
+            </div>
+
+            <!-- 评论通知 (已读) -->
+            <div class="notification-card">
+                <div class="notification-icon">
+                    <i class="bi bi-chat-left-text-fill icon-comment-fill"></i>
+                </div>
+                <div class="notification-body">
+                    <div class="notification-users">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="notification-avatar" alt="助手">
+                    </div>
+                    <div class="notification-content">
+                        <strong>掘金小助手</strong> 评论了你的动态：“非常棒的项目，继续加油！”
+                    </div>
+                    <div class="notification-post-preview">
+                        myownX 界面基本完成了，左侧三栏导航和右侧的小组件都很好看...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- 4. 私信页 -->
+    {% elif request.path == '/messages' %}
+        <div class="messages-layout">
+            <!-- 左侧会话列表 -->
+            <div class="messages-list-pane">
+                <div class="chat-item active">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="chat-avatar" alt="李雷">
+                    <div class="chat-detail">
+                        <div class="chat-header">
+                            <span class="chat-name">李雷</span>
+                            <span class="chat-time">下午 5:12</span>
+                        </div>
+                        <div class="chat-message-preview">晚上一起去操场跑步吗？</div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="alert('TASK-0 仅提供静态会话模拟，可以切换查看李雷的聊天。')">
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="chat-avatar" alt="韩梅梅">
+                    <div class="chat-detail">
+                        <div class="chat-header">
+                            <span class="chat-name">韩梅梅</span>
+                            <span class="chat-time">昨天</span>
+                        </div>
+                        <div class="chat-message-preview">这套响应式布局在手机上效果很好！</div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="alert('TASK-0 仅提供静态会话模拟。')">
+                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="chat-avatar" alt="助手">
+                    <div class="chat-detail">
+                        <div class="chat-header">
+                            <span class="chat-name">掘金小助手</span>
+                            <span class="chat-time">3天前</span>
+                        </div>
+                        <div class="chat-message-preview">系统自动：恭喜你成功注册 myownX！</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧对话窗 (PC端显示，移动端隐藏) -->
+            <div class="messages-chat-pane d-none d-md-flex">
+                <div class="chat-pane-header">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="chat-avatar" style="width:36px; height:36px;" alt="李雷">
+                    <div>
+                        <div class="fw-bold">李雷</div>
+                        <div class="text-muted small">@lilei</div>
+                    </div>
+                </div>
+
+                <div class="chat-body">
+                    <div class="message-bubble incoming">
+                        Hi，在吗？你最近在忙什么项目呢？
+                    </div>
+                    <div class="message-bubble outgoing">
+                        在做 myownX 这个社交平台的前端 UI 适配，正在写 HTML 和 CSS。
+                    </div>
+                    <div class="message-bubble incoming">
+                        哇，听起来很酷！是用 Bootstrap 实现响应式的吗？
+                    </div>
+                    <div class="message-bubble outgoing">
+                        对，Bootstrap 5 + 自定义 CSS 样式，现在效果超级棒！
+                    </div>
+                    <div class="message-bubble incoming">
+                        太好了，晚上一起去操场跑步吗？
+                    </div>
+                </div>
+
+                <div class="chat-footer">
+                    <div class="chat-input-wrapper">
+                        <input type="text" class="chat-input" placeholder="输入新消息...">
+                        <button class="btn-chat-send"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- 5. 个人主页 -->
+    {% elif request.path == '/profile' %}
+        <!-- 封面图 -->
+        <div class="profile-cover"></div>
+
+        <!-- 头像与编辑按钮 -->
+        <div class="profile-avatar-container">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop" class="profile-avatar" alt="个人头像">
+            <button class="btn-profile-edit" onclick="window.location.href='/settings'">编辑个人资料</button>
+        </div>
+
+        <!-- 个人元数据 -->
+        <div class="profile-meta-info">
+            <div class="profile-realname">演示用户</div>
+            <div class="profile-username">@guest</div>
+            
+            <p class="profile-bio">你好，我是 myownX 的体验官。正在探索该系统的本地响应式 UI 适配。前端逻辑正在持续交付中！</p>
+            
+            <div class="profile-joined">
+                <i class="bi bi-calendar3"></i>
+                <span>2026年7月 加入</span>
+            </div>
+
+            <div class="profile-stats">
+                <span><strong class="stat-num">42</strong> <span class="stat-label">关注</span></span>
+                <span><strong class="stat-num">1.2k</strong> <span class="stat-label">粉丝</span></span>
+            </div>
+        </div>
+
+        <!-- 导航 Tabs -->
+        <div class="profile-nav-tabs">
+            <div class="profile-tab active">动态</div>
+            <div class="profile-tab">回复</div>
+            <div class="profile-tab">媒体</div>
+            <div class="profile-tab">喜欢</div>
+        </div>
+
+        <!-- 个人动态列表 -->
+        <div class="profile-feed">
+            <article class="post-card">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-card-avatar" alt="头像">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">演示用户</span>
+                        <span class="post-author-handle">@guest</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">2天前</span>
+                    </div>
+                    <p class="post-card-text">myownX 界面基本完成了，左侧三栏导航和右侧的小组件都很好看，期待接下来的后端接口开发！💻💪</p>
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>2</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span>0</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span>5</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="post-card">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-card-avatar" alt="头像">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">演示用户</span>
+                        <span class="post-author-handle">@guest</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">3天前</span>
+                    </div>
+                    <p class="post-card-text">第一条测试动态发布成功！欢迎各位同学在本地进行测试和体验。👨‍💻🚀</p>
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>6</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span>1</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span>12</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+    <!-- 6. 设置页 -->
+    {% elif request.path == '/settings' %}
+        <div class="settings-page">
+            <div class="settings-section">
+                <h3 class="settings-section-title">个人资料编辑</h3>
+                <form action="#" method="GET" onsubmit="event.preventDefault(); alert('信息已保存（静态演示）');">
+                    <div class="mb-3">
+                        <label class="form-label" for="profile-name-input">昵称</label>
+                        <input type="text" class="form-control-custom" id="profile-name-input" value="演示用户">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="profile-bio-input">简介</label>
+                        <textarea class="form-control-custom" id="profile-bio-input" rows="3">你好，我是 myownX 的体验官。正在探索该系统的本地响应式 UI 适配。前端逻辑正在持续交付中！</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4" style="background-color: var(--myownx-theme); border:none; font-weight:700;">保存修改</button>
+                </form>
+            </div>
+
+            <div class="settings-section">
+                <h3 class="settings-section-title">隐私与安全</h3>
+                
+                <div class="setting-row">
+                    <div class="setting-label-col">
+                        <div class="setting-title">私密账号</div>
+                        <div class="setting-desc">开启后，只有关注你的用户才能看到你的动态和媒体。</div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="privateSwitch" style="width: 2.5em; height: 1.25em;">
+                    </div>
+                </div>
+
+                <div class="setting-row border-top pt-3">
+                    <div class="setting-label-col">
+                        <div class="setting-title">允许任何人发送私信</div>
+                        <div class="setting-desc">如果不开启，只有你关注的用户才能向你发送一对一私信。</div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dmSwitch" checked style="width: 2.5em; height: 1.25em;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3 class="settings-section-title">系统信息</h3>
+                <div class="text-muted small">
+                    <p class="mb-1">系统名称：myownX Web Platform (Local Demo)</p>
+                    <p class="mb-1">版本：v0.1.0-alpha (UI-TASK-0)</p>
+                    <p class="mb-0">核心库：Flask, Bootstrap 5.3.3, SQLite</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+{% endblock %}

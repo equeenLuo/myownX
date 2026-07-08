@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title or "myownX" }} - myownX</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- 判断是否为登录或注册页面，单独进行全屏布局 -->
+    {% if request.path in ['/login', '/register'] %}
+        <div class="container d-flex align-items-center justify-content-center min-vh-100">
+            {% block auth_content %}{% endblock %}
+        </div>
+    {% else %}
+        
+        <!-- ==================== 手机端左侧滑出式抽屉 (Mobile Drawer) ==================== -->
+        <div class="mobile-drawer-backdrop" id="drawerBackdrop"></div>
+        <div class="mobile-drawer" id="mobileDrawer">
+            <div class="drawer-header">
+                <div class="drawer-user-card">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="drawer-avatar" alt="头像">
+                    <div class="drawer-user-info">
+                        <div class="drawer-name">演示用户</div>
+                        <div class="drawer-handle">@guest</div>
+                    </div>
+                    <div class="drawer-stats">
+                        <span><strong class="stat-num">42</strong> <span class="stat-label">关注</span></span>
+                        <span><strong class="stat-num">1.2k</strong> <span class="stat-label">粉丝</span></span>
+                    </div>
+                </div>
+            </div>
+            <ul class="drawer-menu-list">
+                <li>
+                    <a href="{{ url_for('profile') }}" class="drawer-menu-item">
+                        <i class="bi bi-person"></i>个人主页
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('settings') }}" class="drawer-menu-item">
+                        <i class="bi bi-gear"></i>隐私与设置
+                    </a>
+                </li>
+            </ul>
+            <div class="drawer-footer">
+                <button class="btn-drawer-logout" onclick="window.location.href='/login'">
+                    <i class="bi bi-box-arrow-right"></i> 退出登录
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== 手机端顶部栏 (Mobile Top Bar) ==================== -->
+        <header class="mobile-top-bar">
+            <!-- 点击头像拉出抽屉 -->
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="mobile-avatar-btn" id="mobileAvatarBtn" alt="用户头像">
+            <span class="mobile-brand">myownX</span>
+            <a href="{{ url_for('settings') }}" class="text-dark"><i class="bi bi-gear" style="font-size: 1.25rem;"></i></a>
+        </header>
+
+        <!-- ==================== 手机端底部导航栏 (Mobile Bottom Nav) ==================== -->
+        <nav class="mobile-bottom-nav">
+            <a href="{{ url_for('index') }}" class="mobile-nav-link {% if request.path in ['/', '/feed'] %}active{% endif %}">
+                <i class="bi {% if request.path in ['/', '/feed'] %}bi-house-door-fill{% else %}bi-house-door{% endif %}"></i>
+            </a>
+            <a href="{{ url_for('discover') }}" class="mobile-nav-link {% if request.path == '/discover' %}active{% endif %}">
+                <i class="bi {% if request.path == '/discover' %}bi-search-heart-fill{% else %}bi-search{% endif %}"></i>
+            </a>
+            <a href="{{ url_for('notifications') }}" class="mobile-nav-link {% if request.path == '/notifications' %}active{% endif %}">
+                <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
+            </a>
+            <a href="{{ url_for('messages') }}" class="mobile-nav-link {% if request.path == '/messages' %}active{% endif %}">
+                <i class="bi {% if request.path == '/messages' %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+            </a>
+        </nav>
+
+        <!-- ==================== 手机端右下角悬浮发布按钮 (Mobile FAB) ==================== -->
+        <button class="mobile-fab" id="mobileFab">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+
+        <!-- ==================== PC 三栏总页面容器 ==================== -->
+        <div class="app-container">
+
+            <!-- 左侧导航栏 -->
+            <aside class="sidebar-left">
+                <div>
+                    <a href="{{ url_for('index') }}" class="sidebar-brand text-decoration-none">
+                        <span class="brand-logo">myownX</span>
+                    </a>
+                    
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="{{ url_for('index') }}" class="menu-item {% if request.path in ['/', '/feed'] %}active{% endif %}">
+                                <i class="bi {% if request.path in ['/', '/feed'] %}bi-house-door-fill{% else %}bi-house-door{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Home</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('discover') }}" class="menu-item {% if request.path == '/discover' %}active{% endif %}">
+                                <i class="bi {% if request.path == '/discover' %}bi-hash-square-fill{% else %}bi-hash{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Explore</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('notifications') }}" class="menu-item {% if request.path == '/notifications' %}active{% endif %}">
+                                <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Notifications</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('messages') }}" class="menu-item {% if request.path == '/messages' %}active{% endif %}">
+                                <i class="bi {% if request.path == '/messages' %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Chat</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('profile') }}" class="menu-item {% if request.path == '/profile' %}active{% endif %}">
+                                <i class="bi {% if request.path == '/profile' %}bi-person-fill{% else %}bi-person{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Profile</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('settings') }}" class="menu-item {% if request.path == '/settings' %}active{% endif %}">
+                                <i class="bi {% if request.path == '/settings' %}bi-gear-fill{% else %}bi-gear{% endif %}"></i>
+                                <span class="d-none d-xl-inline">Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <button class="sidebar-post-btn d-none d-xl-block" data-bs-toggle="modal" data-bs-target="#postModal">
+                        Post
+                    </button>
+                </div>
+
+                <!-- 账号信息卡片 -->
+                <div class="sidebar-account d-flex" onclick="window.location.href='/profile'">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="account-avatar" alt="用户头像">
+                    <div class="account-info d-none d-xl-block">
+                        <div class="account-name">演示用户</div>
+                        <div class="account-handle">@guest</div>
+                    </div>
+                    <div class="account-more d-none d-xl-block">
+                        <i class="bi bi-three-dots"></i>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间主信息流栏 -->
+            <main class="main-content">
+                <!-- PC端顶部粘性标题栏 -->
+                <div class="main-header d-none d-md-flex">
+                    <h1 class="main-header-title">{{ page_title }}</h1>
+                </div>
+                
+                <!-- 放置各个路由页面具体内容 -->
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- 右侧搜索和推荐关注栏 -->
+            <aside class="widgets-right">
+                <!-- 搜索框 -->
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="搜索 myownX">
+                    </div>
+                </div>
+                
+                <!-- 推荐用户 -->
+                <div class="widget-card">
+                    <h2 class="widget-card-title">推荐关注</h2>
+                    
+                    <div class="widget-card-item">
+                        <div class="follow-user">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="follow-user-avatar" alt="用户头像">
+                            <div class="follow-user-info">
+                                <span class="follow-user-name">韩梅梅</span>
+                                <span class="follow-user-handle">@hanmeimei</span>
+                            </div>
+                        </div>
+                        <button class="btn-follow">关注</button>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="follow-user">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="follow-user-avatar" alt="用户头像">
+                            <div class="follow-user-info">
+                                <span class="follow-user-name">李雷</span>
+                                <span class="follow-user-handle">@lilei</span>
+                            </div>
+                        </div>
+                        <button class="btn-follow">关注</button>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="follow-user">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="follow-user-avatar" alt="用户头像">
+                            <div class="follow-user-info">
+                                <span class="follow-user-name">掘金小助手</span>
+                                <span class="follow-user-handle">@juejin</span>
+                            </div>
+                        </div>
+                        <button class="btn-follow">关注</button>
+                    </div>
+                </div>
+
+                <!-- 热门动态 / 趋势 -->
+                <div class="widget-card">
+                    <h2 class="widget-card-title">热门趋势</h2>
+                    
+                    <div class="widget-card-item">
+                        <div class="trend-item">
+                            <span class="trend-category">科技 · 热门</span>
+                            <span class="trend-title">#myownX上线啦</span>
+                            <span class="trend-posts">1.2万 动态</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="trend-item">
+                            <span class="trend-category">教育 · 热门</span>
+                            <span class="trend-title">#大一学生的Web社交网络</span>
+                            <span class="trend-posts">854 动态</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="trend-item">
+                            <span class="trend-category">编程 · 热门</span>
+                            <span class="trend-title">#PythonFlask后端开发</span>
+                            <span class="trend-posts">2.3k 动态</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="trend-item">
+                            <span class="trend-category">前端 · 热门</span>
+                            <span class="trend-title">#Bootstrap响应式UI</span>
+                            <span class="trend-posts">1.5k 动态</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    {% endif %}
+
+    <!-- ==================== 全局发帖模态框 (Post Modal) ==================== -->
+    <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex gap-3">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-creator-avatar" alt="用户头像">
+                        <div class="flex-grow-1">
+                            <textarea class="post-creator-textarea" placeholder="有什么新动态？" rows="4"></textarea>
+                            
+                            <div class="post-creator-toolbar">
+                                <div class="post-creator-actions">
+                                    <button class="post-creator-action-btn"><i class="bi bi-image"></i></button>
+                                    <button class="post-creator-action-btn"><i class="bi bi-emoji-smile"></i></button>
+                                    <button class="post-creator-action-btn"><i class="bi bi-geo-alt"></i></button>
+                                </div>
+                                <button class="btn-post-submit" data-bs-dismiss="modal">发布</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Main JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
