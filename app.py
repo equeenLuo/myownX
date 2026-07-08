@@ -1,7 +1,9 @@
 from pathlib import Path
+from uuid import uuid4
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
-from flask_login import LoginManager, current_user, login_user, logout_user
+from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
@@ -10,6 +12,11 @@ from models import User, db
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
+login_manager.login_message = "Please sign in to continue."
+login_manager.login_message_category = "info"
+
+DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
+ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
 @login_manager.user_loader
@@ -28,8 +35,23 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    avatar_upload_dir = Path(app.static_folder) / "uploads" / "avatars"
+    avatar_upload_dir.mkdir(parents=True, exist_ok=True)
+
     with app.app_context():
         db.create_all()
+
+    @app.context_processor
+    def utility_processor():
+        def user_avatar_url(user):
+            if user and getattr(user, "profile_picture_path", None):
+                path = user.profile_picture_path
+                if path.startswith(("http://", "https://", "/")):
+                    return path
+                return url_for("static", filename=path)
+            return DEFAULT_AVATAR_URL
+
+        return {"user_avatar_url": user_avatar_url}
 
     @app.get("/health")
     def health():
@@ -59,8 +81,49 @@ def create_app(config_class=Config):
         return placeholder("通知")
 
     @app.get("/profile")
+    @login_required
     def profile():
         return placeholder("个人主页")
+
+    @app.route("/profile/edit", methods=["GET", "POST"])
+    @login_required
+    def profile_edit():
+        if request.method == "POST":
+            display_name = request.form.get("display_name", "").strip()
+            bio = request.form.get("bio", "").strip()
+
+            if not display_name:
+                flash("Display name is required.", "error")
+                return render_template("profile_edit.html", page_title="Edit Profile")
+
+            if len(display_name) > 50:
+                flash("Display name must be 50 characters or fewer.", "error")
+                return render_template("profile_edit.html", page_title="Edit Profile")
+
+            if len(bio) > 255:
+                flash("Bio must be 255 characters or fewer.", "error")
+                return render_template("profile_edit.html", page_title="Edit Profile")
+
+            avatar_file = request.files.get("profile_picture")
+            if avatar_file and avatar_file.filename:
+                original_filename = secure_filename(avatar_file.filename)
+                extension = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+
+                if extension not in ALLOWED_AVATAR_EXTENSIONS:
+                    flash("Profile picture must be a png, jpg, jpeg, gif, or webp file.", "error")
+                    return render_template("profile_edit.html", page_title="Edit Profile")
+
+                filename = f"user_{current_user.id}_{uuid4().hex}.{extension}"
+                avatar_file.save(avatar_upload_dir / filename)
+                current_user.profile_picture_path = f"uploads/avatars/{filename}"
+
+            current_user.display_name = display_name
+            current_user.bio = bio or None
+            db.session.commit()
+            flash("Profile updated successfully.", "success")
+            return redirect(url_for("profile"))
+
+        return render_template("profile_edit.html", page_title="Edit Profile")
 
     @app.get("/settings")
     def settings():

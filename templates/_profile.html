@@ -1,0 +1,142 @@
+<!-- Profile Top Sticky Header -->
+<div class="d-flex align-items-center px-3 py-2 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
+    <a href="javascript:history.back()" class="text-dark me-4"><i class="bi bi-arrow-left fs-5"></i></a>
+    <div>
+        <h2 class="fw-bold mb-0" style="font-size: 1.25rem;">
+            {% if user %}
+                {{ user.display_name }}
+            {% else %}
+                {{ current_user.display_name if (current_user and current_user.is_authenticated) else 'Demo User' }}
+            {% endif %}
+        </h2>
+        <span class="text-muted small">{{ posts|length if posts else '2' }} Posts</span>
+    </div>
+</div>
+
+<!-- Profile Banner Cover Photo -->
+<div class="profile-cover"></div>
+
+<!-- Avatar and Actions Column -->
+<div class="profile-avatar-container">
+    <img src="{{ user_avatar_url(user if user else current_user) }}" class="profile-avatar" alt="Avatar">
+
+    {% if current_user and current_user.is_authenticated and (not user or user.id == current_user.id) %}
+        <a href="/profile/edit" class="btn-profile-edit">Edit profile</a>
+    {% else %}
+        <button class="btn btn-dark rounded-pill px-4 fw-bold mb-2">Follow</button>
+    {% endif %}
+</div>
+
+<!-- User Details Bio Info -->
+<div class="profile-meta-info">
+    <div class="profile-realname">
+        {% if user %}
+            {{ user.display_name }}
+        {% else %}
+            {{ current_user.display_name if (current_user and current_user.is_authenticated) else 'Demo User' }}
+        {% endif %}
+    </div>
+    <div class="profile-username">
+        @{% if user %}{{ user.username }}{% else %}{{ current_user.username if (current_user and current_user.is_authenticated) else 'guest' }}{% endif %}
+    </div>
+    
+    <p class="profile-bio">
+        {% if user %}
+            {{ user.bio or '' }}
+        {% else %}
+            {% if current_user and current_user.is_authenticated %}
+                {{ current_user.bio or '' }}
+            {% else %}
+                Hello! I am the myownX experience officer. Exploring the local responsive UI design. Frontend logic is being continuously delivered!
+            {% endif %}
+        {% endif %}
+    </p>
+    
+    <div class="profile-joined">
+        <i class="bi bi-calendar3"></i>
+        <span>Joined {% if user and user.created_at and user.created_at.strftime %}{{ user.created_at.strftime('%B %Y') }}{% elif current_user and current_user.is_authenticated and current_user.created_at and current_user.created_at.strftime %}{{ current_user.created_at.strftime('%B %Y') }}{% else %}July 2026{% endif %}</span>
+    </div>
+
+    <div class="profile-stats">
+        <span><strong class="stat-num">42</strong> <span class="stat-label">Following</span></span>
+        <span><strong class="stat-num">1.2K</strong> <span class="stat-label">Followers</span></span>
+    </div>
+</div>
+
+<!-- Tabs Segment -->
+<div class="profile-nav-tabs">
+    <div class="profile-tab active">Posts</div>
+    <div class="profile-tab">Replies</div>
+    <div class="profile-tab">Media</div>
+    <div class="profile-tab">Likes</div>
+</div>
+
+<!-- Feed of Posts -->
+<div class="profile-feed">
+    {% if posts %}
+        {% for post in posts %}
+            <article class="post-card">
+                <img src="{{ user_avatar_url(user if user else current_user) }}" class="post-card-avatar" alt="Avatar">
+                <div class="post-card-body">
+                    <div class="post-card-header">
+                        <span class="post-author-name">{% if user %}{{ user.display_name or user.username }}{% else %}{{ current_user.display_name or current_user.username }}{% endif %}</span>
+                        <span class="post-author-handle">@{% if user %}{{ user.username }}{% else %}{{ current_user.username }}{% endif %}</span>
+                        <span class="post-dot">·</span>
+                        <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d') if (post.created_at and post.created_at.strftime) else '2d ago' }}</span>
+                    </div>
+                    <p class="post-card-text">{{ post.content }}</p>
+                    {% if post.media_path %}
+                        <div class="post-card-media">
+                            <img src="{{ post.media_path }}" alt="Media">
+                        </div>
+                    {% endif %}
+                    <div class="post-card-footer">
+                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>0</span></button>
+                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
+                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">0</span></button>
+                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    {% else %}
+        <!-- Simulated Fallback Posts when not in database -->
+        <article class="post-card">
+            <img src="{{ user_avatar_url(current_user if (current_user and current_user.is_authenticated) else None) }}" class="post-card-avatar" alt="Avatar">
+            <div class="post-card-body">
+                <div class="post-card-header">
+                    <span class="post-author-name">{% if current_user and current_user.is_authenticated %}{{ current_user.display_name }}{% else %}Demo User{% endif %}</span>
+                    <span class="post-author-handle">@{% if current_user and current_user.is_authenticated %}{{ current_user.username }}{% else %}guest{% endif %}</span>
+                    <span class="post-dot">·</span>
+                    <span class="post-time">2d ago</span>
+                </div>
+                <p class="post-card-text">myownX interface is basically complete! The sidebar navigation and widgets look amazing, looking forward to the backend integration! 💻💪</p>
+                <div class="post-card-footer">
+                    <button class="post-action action-comment"><i class="bi bi-chat"></i><span>2</span></button>
+                    <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
+                    <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">5</span></button>
+                    <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                </div>
+            </div>
+        </article>
+
+        <article class="post-card">
+            <img src="{{ user_avatar_url(current_user if (current_user and current_user.is_authenticated) else None) }}" class="post-card-avatar" alt="Avatar">
+            <div class="post-card-body">
+                <div class="post-card-header">
+                    <span class="post-author-name">{% if current_user and current_user.is_authenticated %}{{ current_user.display_name }}{% else %}Demo User{% endif %}</span>
+                    <span class="post-author-handle">@{% if current_user and current_user.is_authenticated %}{{ current_user.username }}{% else %}guest{% endif %}</span>
+                    <span class="post-dot">·</span>
+                    <span class="post-time">3d ago</span>
+                </div>
+                <p class="post-card-text">First test post published successfully! Welcome to test and experience it locally. 👨‍💻🚀</p>
+                <div class="post-card-footer">
+                    <button class="post-action action-comment"><i class="bi bi-chat"></i><span>6</span></button>
+                    <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">1</span></button>
+                    <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">12</span></button>
+                    <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                </div>
+            </div>
+        </article>
+    {% endif %}
+</div>

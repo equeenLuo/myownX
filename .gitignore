@@ -10,3 +10,8 @@ docs/TASK_BOARD.md
 README.md
 AGENTS.md
 docs/walkthrough.md
+static/uploads/*
+!static/uploads/.gitkeep
+!static/uploads/avatars/
+static/uploads/avatars/*
+!static/uploads/avatars/.gitkeep

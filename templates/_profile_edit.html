@@ -1,0 +1,81 @@
+<!-- Top Sticky Header -->
+<div class="d-flex align-items-center px-3 py-2 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
+    <a href="javascript:history.back()" class="text-dark me-4"><i class="bi bi-arrow-left fs-5"></i></a>
+    <div>
+        <h2 class="fw-bold mb-0" style="font-size: 1.25rem;">Edit Profile</h2>
+    </div>
+</div>
+
+<div class="p-3">
+    <!-- Flash message block -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{% if category == 'error' %}danger{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="/profile/edit" method="POST" enctype="multipart/form-data">
+        <!-- Profile Picture Upload Input -->
+        <div class="mb-4 text-center">
+            <div class="position-relative d-inline-block">
+                <img src="{{ user_avatar_url(current_user) }}" id="avatar-preview" class="profile-avatar border border-4 border-white shadow-sm" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                <label for="profile_picture" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow-sm d-flex align-items-center justify-content-center" style="cursor: pointer; width: 36px; height: 36px; transform: translate(5px, 5px);">
+                    <i class="bi bi-camera"></i>
+                </label>
+                <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="d-none" onchange="previewImage(this)">
+            </div>
+            <div class="text-muted small mt-2">Click icon to upload a new avatar</div>
+        </div>
+
+        <!-- Display Name -->
+        <div class="mb-3">
+            <label class="form-label fw-bold" for="display_name">Display Name</label>
+            <input type="text" class="form-control-custom" id="display_name" name="display_name" value="{{ current_user.display_name if (current_user and current_user.display_name) else '' }}" placeholder="Enter display name" required maxLength="50">
+        </div>
+
+        <!-- Biography -->
+        <div class="mb-4">
+            <label class="form-label fw-bold" for="bio">Bio</label>
+            <textarea class="form-control-custom" id="bio" name="bio" rows="4" placeholder="Tell us about yourself..." maxLength="160">{{ current_user.bio if (current_user and current_user.bio) else '' }}</textarea>
+            <div class="text-muted text-end small mt-1"><span id="bio-count">0</span>/160</div>
+        </div>
+
+        <!-- Submit actions -->
+        <div class="d-flex gap-3 justify-content-end">
+            <button type="button" class="btn btn-light rounded-pill px-4" onclick="window.history.back()">Cancel</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4" style="background-color: var(--myownx-theme); border: none; font-weight: 700;">Save changes</button>
+        </div>
+    </form>
+</div>
+
+<!-- Image Previewing JS Helper -->
+<script>
+    if (typeof previewImage !== 'function') {
+        window.previewImage = function(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatar-preview').src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    }
+
+    // Bio Char Limit counter micro-interaction
+    (function() {
+        const bioTextarea = document.getElementById('bio');
+        const bioCounter = document.getElementById('bio-count');
+        if (bioTextarea && bioCounter) {
+            bioCounter.textContent = bioTextarea.value.length;
+            bioTextarea.addEventListener('input', function() {
+                bioCounter.textContent = this.value.length;
+            });
+        }
+    })();
+</script>

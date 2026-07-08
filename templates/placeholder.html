@@ -9,7 +9,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{% if category == 'error' %}danger{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
+                        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -38,7 +38,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{% if category == 'error' %}danger{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
+                        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -343,83 +343,13 @@
 
     <!-- 5. Profile Page -->
     {% elif request.path == '/profile' %}
-        <!-- Cover Photo Banner -->
-        <div class="profile-cover"></div>
+        {% include "_profile.html" %}
 
-        <!-- Avatar and Edit Button -->
-        <div class="profile-avatar-container">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop" class="profile-avatar" alt="Avatar">
-            <button class="btn-profile-edit" onclick="window.location.href='/settings'">Edit profile</button>
-        </div>
+    <!-- 6. Profile Edit Page (Transition Compatibility) -->
+    {% elif request.path == '/profile/edit' %}
+        {% include "_profile_edit.html" %}
 
-        <!-- User Information -->
-        <div class="profile-meta-info">
-            <div class="profile-realname">Demo User</div>
-            <div class="profile-username">@guest</div>
-            
-            <p class="profile-bio">Hello! I am the myownX experience officer. Exploring the local responsive UI design. Frontend logic is being continuously delivered!</p>
-            
-            <div class="profile-joined">
-                <i class="bi bi-calendar3"></i>
-                <span>Joined July 2026</span>
-            </div>
-
-            <div class="profile-stats">
-                <span><strong class="stat-num">42</strong> <span class="stat-label">Following</span></span>
-                <span><strong class="stat-num">1.2K</strong> <span class="stat-label">Followers</span></span>
-            </div>
-        </div>
-
-        <!-- Section Navigation Tab Links -->
-        <div class="profile-nav-tabs">
-            <div class="profile-tab active">Posts</div>
-            <div class="profile-tab">Replies</div>
-            <div class="profile-tab">Media</div>
-            <div class="profile-tab">Likes</div>
-        </div>
-
-        <!-- Personal Posts Feed -->
-        <div class="profile-feed">
-            <article class="post-card">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    <div class="post-card-header">
-                        <span class="post-author-name">Demo User</span>
-                        <span class="post-author-handle">@guest</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">2d ago</span>
-                    </div>
-                    <p class="post-card-text">myownX interface is basically complete! The sidebar navigation and widgets look amazing, looking forward to the backend integration! 💻💪</p>
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>2</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span>0</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span>5</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                    </div>
-                </div>
-            </article>
-
-            <article class="post-card">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    <div class="post-card-header">
-                        <span class="post-author-name">Demo User</span>
-                        <span class="post-author-handle">@guest</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">3d ago</span>
-                    </div>
-                    <p class="post-card-text">First test post published successfully! Welcome to test and experience it locally. 👨‍💻🚀</p>
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>6</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span>1</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span>12</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                    </div>
-                </div>
-            </article>
-        </div>
-
-    <!-- 6. Settings Page -->
+    <!-- 7. Settings Page -->
     {% elif request.path == '/settings' %}
         <div class="settings-page">
             <div class="settings-section">
