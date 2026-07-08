@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-<!-- ==================== Auth Screens Layout (Centered) ==================== -->
+<!-- ==================== Auth Screens Layout (Compatibility Layer) ==================== -->
 {% block auth_content %}
     {% if request.path == '/login' %}
         <div class="auth-container">
@@ -9,23 +9,26 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-danger" role="alert">{{ message }}</div>
+                        <div class="alert alert-{% if category == 'error' %}danger{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
             <form action="{{ url_for('login') }}" method="POST">
                 <div class="form-group">
-                    <label class="form-label" for="login-username">Username</label>
-                    <input type="text" id="login-username" name="username" class="form-control-custom" placeholder="Enter username" required>
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control-custom" placeholder="Enter username" required autofocus>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="login-password">Password</label>
-                    <input type="password" id="login-password" name="password" class="form-control-custom" placeholder="Enter password" required>
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control-custom" placeholder="Enter password" required>
                 </div>
                 <button type="submit" class="btn-auth-submit">Sign In</button>
             </form>
             <div class="auth-footer">
-                New to myownX? <a href="/register">Sign up now</a>
+                New to myownX? <a href="{{ url_for('register') }}">Sign up now</a>
             </div>
         </div>
     {% elif request.path == '/register' %}
@@ -35,27 +38,30 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-danger" role="alert">{{ message }}</div>
+                        <div class="alert alert-{% if category == 'error' %}danger{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert" style="border-radius: 8px; font-size: 0.9rem;">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
             <form action="{{ url_for('register') }}" method="POST">
                 <div class="form-group">
-                    <label class="form-label" for="reg-username">Username</label>
-                    <input type="text" id="reg-username" name="username" class="form-control-custom" placeholder="Letters, numbers, or underscores" required>
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control-custom" placeholder="Letters, numbers, or underscores" required autofocus>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="reg-display-name">Display Name</label>
-                    <input type="text" id="reg-display-name" name="display_name" class="form-control-custom" placeholder="Enter display name" required>
+                    <label class="form-label" for="display_name">Display Name</label>
+                    <input type="text" id="display_name" name="display_name" class="form-control-custom" placeholder="Enter display name" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="reg-password">Password</label>
-                    <input type="password" id="reg-password" name="password" class="form-control-custom" placeholder="Set your login password" required>
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control-custom" placeholder="Set your login password" required>
                 </div>
                 <button type="submit" class="btn-auth-submit">Sign Up</button>
             </form>
             <div class="auth-footer">
-                Already have an account? <a href="/login">Sign in</a>
+                Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
             </div>
         </div>
     {% endif %}

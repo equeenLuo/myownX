@@ -28,17 +28,31 @@
         <div class="mobile-drawer-backdrop" id="drawerBackdrop"></div>
         <div class="mobile-drawer" id="mobileDrawer">
             <div class="drawer-header">
-                <div class="drawer-user-card">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="drawer-avatar" alt="Avatar">
-                    <div class="drawer-user-info">
-                        <div class="drawer-name">Demo User</div>
-                        <div class="drawer-handle">@guest</div>
+                {% if current_user and current_user.is_authenticated %}
+                    <div class="drawer-user-card">
+                        <img src="{{ current_user.profile_picture_path or 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' }}" class="drawer-avatar" alt="Avatar">
+                        <div class="drawer-user-info">
+                            <div class="drawer-name">{{ current_user.display_name or current_user.username }}</div>
+                            <div class="drawer-handle">@{{ current_user.username }}</div>
+                        </div>
+                        <div class="drawer-stats">
+                            <span><strong class="stat-num">42</strong> <span class="stat-label">Following</span></span>
+                            <span><strong class="stat-num">1.2K</strong> <span class="stat-label">Followers</span></span>
+                        </div>
                     </div>
-                    <div class="drawer-stats">
-                        <span><strong class="stat-num">42</strong> <span class="stat-label">Following</span></span>
-                        <span><strong class="stat-num">1.2K</strong> <span class="stat-label">Followers</span></span>
+                {% else %}
+                    <div class="drawer-user-card">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="drawer-avatar" style="filter: grayscale(100%);" alt="Avatar">
+                        <div class="drawer-user-info">
+                            <div class="drawer-name">Guest User</div>
+                            <div class="drawer-handle">@guest</div>
+                        </div>
+                        <div class="drawer-stats">
+                            <span><strong class="stat-num">0</strong> <span class="stat-label">Following</span></span>
+                            <span><strong class="stat-num">0</strong> <span class="stat-label">Followers</span></span>
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
             <ul class="drawer-menu-list">
                 <li>
@@ -53,16 +67,26 @@
                 </li>
             </ul>
             <div class="drawer-footer">
-                <button class="btn-drawer-logout" onclick="window.location.href='/login'">
-                    <i class="bi bi-box-arrow-right"></i> Log out
-                </button>
+                {% if current_user and current_user.is_authenticated %}
+                    <form action="{{ url_for('logout') }}" method="POST" id="logoutFormMobile">
+                        <button type="submit" class="btn-drawer-logout">
+                            <i class="bi bi-box-arrow-right"></i> Log out
+                        </button>
+                    </form>
+                {% else %}
+                    <button class="btn btn-outline-primary rounded-pill w-100 fw-bold" onclick="window.location.href='/login'">Sign In</button>
+                {% endif %}
             </div>
         </div>
 
         <!-- ==================== Mobile Top Header Bar ==================== -->
         <header class="mobile-top-bar">
             <!-- Click avatar to trigger side drawer -->
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="mobile-avatar-btn" id="mobileAvatarBtn" alt="User Avatar">
+            {% if current_user and current_user.is_authenticated %}
+                <img src="{{ current_user.profile_picture_path or 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' }}" class="mobile-avatar-btn" id="mobileAvatarBtn" alt="User Avatar">
+            {% else %}
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="mobile-avatar-btn" id="mobileAvatarBtn" style="filter: grayscale(100%);" alt="User Avatar">
+            {% endif %}
             <span class="mobile-brand">myownX</span>
             <a href="{{ url_for('settings') }}" class="text-dark"><i class="bi bi-gear" style="font-size: 1.25rem;"></i></a>
         </header>
@@ -143,16 +167,40 @@
                 </div>
 
                 <!-- Account Info Section -->
-                <div class="sidebar-account d-flex" onclick="window.location.href='/profile'">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="account-avatar" alt="User Avatar">
-                    <div class="account-info d-none d-xl-block">
-                        <div class="account-name">Demo User</div>
-                        <div class="account-handle">@guest</div>
+                {% if current_user and current_user.is_authenticated %}
+                    <div class="sidebar-account d-flex dropdown">
+                        <div class="d-flex align-items-center w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="{{ current_user.profile_picture_path or 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' }}" class="account-avatar" alt="Avatar">
+                            <div class="account-info d-none d-xl-block">
+                                <div class="account-name">{{ current_user.display_name or current_user.username }}</div>
+                                <div class="account-handle">@{{ current_user.username }}</div>
+                            </div>
+                            <div class="account-more d-none d-xl-block">
+                                <i class="bi bi-three-dots"></i>
+                            </div>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-dark border-0 rounded-4 shadow p-2" style="background-color: #15181c; min-width: 180px;">
+                            <li>
+                                <form action="{{ url_for('logout') }}" method="POST">
+                                    <button type="submit" class="dropdown-item rounded-3 py-2 text-danger fw-bold d-flex align-items-center gap-2">
+                                        <i class="bi bi-box-arrow-right"></i> Log out @{{ current_user.username }}
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="account-more d-none d-xl-block">
-                        <i class="bi bi-three-dots"></i>
+                {% else %}
+                    <div class="sidebar-account d-flex" onclick="window.location.href='/login'">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="account-avatar" style="filter: grayscale(100%);" alt="Avatar">
+                        <div class="account-info d-none d-xl-block">
+                            <div class="account-name">Guest User</div>
+                            <div class="account-handle">@guest</div>
+                        </div>
+                        <div class="account-more d-none d-xl-block text-primary fw-bold" style="font-size: 0.9rem;">
+                            Sign In
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </aside>
 
             <!-- PC Middle Content Flow -->
