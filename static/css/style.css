@@ -1610,3 +1610,25 @@ a:hover {
 .lightbox-overlay.active .lightbox-content {
     transform: scale(1);
 }
+
+/* ==================== Following Button Interactions ==================== */
+.btn-following {
+    border-color: var(--myownx-border) !important;
+    color: var(--myownx-text) !important;
+    background-color: transparent !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-following:hover {
+    background-color: rgba(244, 33, 46, 0.1) !important; /* X.com 官方警示微淡红背景 */
+    border-color: rgb(244, 33, 46) !important;            /* 警示红 */
+    color: rgb(244, 33, 46) !important;
+}
+
+.btn-following:hover .btn-following-text {
+    display: none;
+}
+
+.btn-following:hover::after {
+    content: "Unfollow";
+}

@@ -19,6 +19,18 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     posts = db.relationship("Post", back_populates="author", cascade="all, delete-orphan")
+    following = db.relationship(
+        "Follow",
+        foreign_keys="Follow.follower_id",
+        back_populates="follower",
+        cascade="all, delete-orphan",
+    )
+    followers = db.relationship(
+        "Follow",
+        foreign_keys="Follow.following_id",
+        back_populates="following",
+        cascade="all, delete-orphan",
+    )
 
 
 class Post(db.Model):
@@ -32,3 +44,19 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     author = db.relationship("User", back_populates="posts")
+
+
+class Follow(db.Model):
+    __tablename__ = "follows"
+    __table_args__ = (
+        db.UniqueConstraint("follower_id", "following_id", name="uq_follower_following"),
+        db.CheckConstraint("follower_id != following_id", name="ck_no_self_follow"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    following_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    follower = db.relationship("User", foreign_keys=[follower_id], back_populates="following")
+    following = db.relationship("User", foreign_keys=[following_id], back_populates="followers")

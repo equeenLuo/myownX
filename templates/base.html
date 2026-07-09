@@ -36,8 +36,8 @@
                             <div class="drawer-handle">@{{ current_user.username }}</div>
                         </div>
                         <div class="drawer-stats">
-                            <span><strong class="stat-num">42</strong> <span class="stat-label">Following</span></span>
-                            <span><strong class="stat-num">1.2K</strong> <span class="stat-label">Followers</span></span>
+                            <span><strong class="stat-num">{{ following_count(current_user) }}</strong> <span class="stat-label">Following</span></span>
+                            <span><strong class="stat-num">{{ follower_count(current_user) }}</strong> <span class="stat-label">Followers</span></span>
                         </div>
                     </div>
                 {% else %}
@@ -223,39 +223,35 @@
                 <!-- Recommended Users -->
                 <div class="widget-card">
                     <h2 class="widget-card-title">Who to follow</h2>
-                    
-                    <div class="widget-card-item">
-                        <div class="follow-user">
-                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="follow-user-avatar" alt="Avatar">
-                            <div class="follow-user-info">
-                                <span class="follow-user-name">Han Meimei</span>
-                                <span class="follow-user-handle">@hanmeimei</span>
+                    {% set sidebar_users = recommended_users(3) %}
+                    {% if sidebar_users %}
+                        {% for suggested_user in sidebar_users %}
+                            <div class="widget-card-item">
+                                <a href="{{ url_for('user_profile', user_id=suggested_user.id) }}" class="follow-user text-decoration-none">
+                                    <img src="{{ user_avatar_url(suggested_user) }}" class="follow-user-avatar" alt="Avatar">
+                                    <div class="follow-user-info">
+                                        <span class="follow-user-name">{{ suggested_user.display_name or suggested_user.username }}</span>
+                                        <span class="follow-user-handle">@{{ suggested_user.username }}</span>
+                                    </div>
+                                </a>
+                                {% if current_user and current_user.is_authenticated %}
+                                    {% if is_following(suggested_user) %}
+                                        <form action="{{ url_for('unfollow_user', user_id=suggested_user.id) }}" method="POST">
+                                            <button type="submit" class="btn btn-outline-light rounded-pill px-3 fw-bold btn-following btn-sm" style="border: 1px solid var(--myownx-border); font-size: 0.8rem; padding: 4px 12px;"><span class="btn-following-text">Following</span></button>
+                                        </form>
+                                    {% else %}
+                                        <form action="{{ url_for('follow_user', user_id=suggested_user.id) }}" method="POST">
+                                            <button type="submit" class="btn-follow">Follow</button>
+                                        </form>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_for('login') }}" class="btn-follow text-decoration-none">Follow</a>
+                                {% endif %}
                             </div>
-                        </div>
-                        <button class="btn-follow">Follow</button>
-                    </div>
-
-                    <div class="widget-card-item">
-                        <div class="follow-user">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="follow-user-avatar" alt="Avatar">
-                            <div class="follow-user-info">
-                                <span class="follow-user-name">Li Lei</span>
-                                <span class="follow-user-handle">@lilei</span>
-                            </div>
-                        </div>
-                        <button class="btn-follow">Follow</button>
-                    </div>
-
-                    <div class="widget-card-item">
-                        <div class="follow-user">
-                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="follow-user-avatar" alt="Avatar">
-                            <div class="follow-user-info">
-                                <span class="follow-user-name">Juejin Assistant</span>
-                                <span class="follow-user-handle">@juejin</span>
-                            </div>
-                        </div>
-                        <button class="btn-follow">Follow</button>
-                    </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="widget-card-item text-muted small">No users to follow yet.</div>
+                    {% endif %}
                 </div>
 
                 <!-- Trending Hashtags / Trends -->

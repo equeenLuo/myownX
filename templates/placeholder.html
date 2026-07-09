@@ -105,6 +105,41 @@
             </div>
         </div>
 
+        <div class="discover-trends">
+            <h5 class="fw-bold p-3 mb-0 border-bottom">People to follow</h5>
+            {% set suggested_list = users if (users is defined and users) else (recommended_users(5) if recommended_users is defined else []) %}
+            {% if suggested_list %}
+                {% for suggested_user in suggested_list %}
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('user_profile', user_id=suggested_user.id) }}" class="follow-user text-decoration-none">
+                            <img src="{{ user_avatar_url(suggested_user) }}" class="follow-user-avatar" alt="Avatar">
+                            <div class="follow-user-info">
+                                <span class="follow-user-name">{{ suggested_user.display_name or suggested_user.username }}</span>
+                                <span class="follow-user-handle">@{{ suggested_user.username }}</span>
+                            </div>
+                        </a>
+                        {% if current_user and current_user.is_authenticated %}
+                            {% if is_following(suggested_user) %}
+                                <form action="{{ url_for('unfollow_user', user_id=suggested_user.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline-light rounded-pill px-3 fw-bold btn-following btn-sm" style="border: 1px solid var(--myownx-border); font-size: 0.85rem;"><span class="btn-following-text">Following</span></button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('follow_user', user_id=suggested_user.id) }}" method="POST">
+                                    <button type="submit" class="btn-follow">Follow</button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="btn-follow text-decoration-none">Follow</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-4 text-center text-muted border-bottom">
+                    No users to recommend yet.
+                </div>
+            {% endif %}
+        </div>
+
         <!-- Trends Section -->
         <div class="discover-trends">
             <h5 class="fw-bold p-3 mb-0 border-bottom">Trends</h5>

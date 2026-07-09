@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import Post, User, db
+from models import Follow, Post, User, db
 
 
 login_manager = LoginManager()
@@ -69,6 +69,36 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
+    def follower_count(user):
+        if not user:
+            return 0
+        return Follow.query.filter_by(following_id=user.id).count()
+
+    def following_count(user):
+        if not user:
+            return 0
+        return Follow.query.filter_by(follower_id=user.id).count()
+
+    def is_following(user):
+        if not user or not current_user or not current_user.is_authenticated:
+            return False
+        return Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first() is not None
+
+    def recommended_users(limit=3):
+        query = User.query.order_by(User.created_at.desc(), User.id.desc())
+
+        if current_user and current_user.is_authenticated:
+            followed_ids = db.session.query(Follow.following_id).filter_by(follower_id=current_user.id)
+            query = query.filter(User.id != current_user.id).filter(~User.id.in_(followed_ids))
+
+        return query.limit(limit).all()
+
+    def redirect_back(default_endpoint="feed", **values):
+        target = request.referrer
+        if target:
+            return redirect(target)
+        return redirect(url_for(default_endpoint, **values))
+
     @app.context_processor
     def utility_processor():
         def user_avatar_url(user):
@@ -101,6 +131,10 @@ def create_app(config_class=Config):
             "user_avatar_url": user_avatar_url,
             "post_media_url": post_media_url,
             "post_media_urls": post_media_urls,
+            "follower_count": follower_count,
+            "following_count": following_count,
+            "is_following": is_following,
+            "recommended_users": recommended_users,
         }
 
     @app.get("/health")
@@ -200,7 +234,7 @@ def create_app(config_class=Config):
 
     @app.get("/discover")
     def discover():
-        return placeholder("发现")
+        return placeholder("发现", users=recommended_users(limit=10))
 
     @app.get("/messages")
     def messages():
@@ -214,7 +248,65 @@ def create_app(config_class=Config):
     @login_required
     def profile():
         user_posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
-        return placeholder("个人主页", posts=user_posts)
+        return placeholder("个人主页", user=current_user, posts=user_posts)
+
+    @app.get("/users/<int:user_id>")
+    @login_required
+    def user_profile(user_id):
+        user = db.session.get(User, user_id)
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("discover"))
+
+        if user.id == current_user.id:
+            return redirect(url_for("profile"))
+
+        user_posts = Post.query.filter_by(user_id=user.id).order_by(Post.created_at.desc()).all()
+        return render_template("profile.html", page_title=user.display_name, user=user, posts=user_posts)
+
+    @app.post("/users/<int:user_id>/follow")
+    @login_required
+    def follow_user(user_id):
+        user = db.session.get(User, user_id)
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect_back("discover")
+
+        if user.id == current_user.id:
+            flash("You cannot follow yourself.", "error")
+            return redirect(url_for("profile"))
+
+        existing_follow = Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first()
+        if existing_follow:
+            flash("You are already following this user.", "info")
+            return redirect_back("user_profile", user_id=user.id)
+
+        follow = Follow(follower_id=current_user.id, following_id=user.id)
+        db.session.add(follow)
+        db.session.commit()
+        flash(f"You are now following {user.display_name or user.username}.", "success")
+        return redirect_back("user_profile", user_id=user.id)
+
+    @app.post("/users/<int:user_id>/unfollow")
+    @login_required
+    def unfollow_user(user_id):
+        user = db.session.get(User, user_id)
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect_back("discover")
+
+        follow = Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first()
+        if not follow:
+            flash("You are not following this user.", "info")
+            return redirect_back("user_profile", user_id=user.id)
+
+        db.session.delete(follow)
+        db.session.commit()
+        flash(f"You unfollowed {user.display_name or user.username}.", "success")
+        return redirect_back("user_profile", user_id=user.id)
 
     @app.route("/profile/edit", methods=["GET", "POST"])
     @login_required
