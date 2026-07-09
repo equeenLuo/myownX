@@ -17,6 +17,7 @@ login_manager.login_message_category = "info"
 
 DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_POST_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
 @login_manager.user_loader
@@ -25,6 +26,11 @@ def load_user(user_id):
         return db.session.get(User, int(user_id))
     except (TypeError, ValueError):
         return None
+
+
+def file_extension(filename):
+    safe_filename = secure_filename(filename)
+    return safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else ""
 
 
 def create_app(config_class=Config):
@@ -36,7 +42,9 @@ def create_app(config_class=Config):
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     avatar_upload_dir = Path(app.static_folder) / "uploads" / "avatars"
+    post_upload_dir = Path(app.static_folder) / "uploads" / "posts"
     avatar_upload_dir.mkdir(parents=True, exist_ok=True)
+    post_upload_dir.mkdir(parents=True, exist_ok=True)
 
     with app.app_context():
         db.create_all()
@@ -51,7 +59,15 @@ def create_app(config_class=Config):
                 return url_for("static", filename=path)
             return DEFAULT_AVATAR_URL
 
-        return {"user_avatar_url": user_avatar_url}
+        def post_media_url(post):
+            if post and getattr(post, "media_path", None):
+                path = post.media_path
+                if path.startswith(("http://", "https://", "/")):
+                    return path
+                return url_for("static", filename=path)
+            return None
+
+        return {"user_avatar_url": user_avatar_url, "post_media_url": post_media_url}
 
     @app.get("/health")
     def health():
@@ -76,16 +92,37 @@ def create_app(config_class=Config):
     @login_required
     def create_post():
         content = request.form.get("content", "").strip()
+        image_file = request.files.get("image")
+        has_image = bool(image_file and image_file.filename)
 
-        if not content:
-            flash("Post content is required.", "error")
+        if not content and not has_image:
+            flash("Post content or image is required.", "error")
             return redirect(url_for("feed"))
 
         if len(content) > 280:
             flash("Post content must be 280 characters or fewer.", "error")
             return redirect(url_for("feed"))
 
-        post = Post(user_id=current_user.id, content=content, media_type="text")
+        media_path = None
+        media_type = "text"
+
+        if has_image:
+            extension = file_extension(image_file.filename)
+            if extension not in ALLOWED_POST_IMAGE_EXTENSIONS:
+                flash("Post image must be a png, jpg, jpeg, gif, or webp file.", "error")
+                return redirect(url_for("feed"))
+
+            filename = f"post_{current_user.id}_{uuid4().hex}.{extension}"
+            image_file.save(post_upload_dir / filename)
+            media_path = f"uploads/posts/{filename}"
+            media_type = "image"
+
+        post = Post(
+            user_id=current_user.id,
+            content=content,
+            media_path=media_path,
+            media_type=media_type,
+        )
         db.session.add(post)
         db.session.commit()
         flash("Post created successfully.", "success")
@@ -149,7 +186,7 @@ def create_app(config_class=Config):
             avatar_file = request.files.get("profile_picture")
             if avatar_file and avatar_file.filename:
                 original_filename = secure_filename(avatar_file.filename)
-                extension = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+                extension = file_extension(original_filename)
 
                 if extension not in ALLOWED_AVATAR_EXTENSIONS:
                     flash("Profile picture must be a png, jpg, jpeg, gif, or webp file.", "error")

@@ -98,10 +98,12 @@
                             </ul>
                         </div>
                     </div>
-                    <p class="post-card-text">{{ post.content }}</p>
-                    {% if post.media_path %}
+                    {% if post.content %}
+                        <p class="post-card-text">{{ post.content }}</p>
+                    {% endif %}
+                    {% if post.media_type == "image" and post.media_path %}
                         <div class="post-card-media">
-                            <img src="{{ post.media_path }}" alt="Media">
+                            <img src="{{ post_media_url(post) }}" alt="Post image">
                         </div>
                     {% endif %}
                     <div class="post-card-footer">

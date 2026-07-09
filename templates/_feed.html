@@ -2,11 +2,12 @@
 <div class="post-creator-box d-none d-md-flex">
     <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Avatar">
     <div class="post-creator-form">
-        <form action="{{ url_for('create_post') }}" method="POST">
-            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="3" maxlength="280" required id="pc-post-textarea"></textarea>
+        <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data">
+            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="3" maxlength="280" id="pc-post-textarea"></textarea>
             <div class="post-creator-toolbar">
                 <div class="post-creator-actions">
-                    <button class="post-creator-action-btn" title="Media" type="button"><i class="bi bi-image"></i></button>
+                    <label class="post-creator-action-btn" title="Media" for="pc-post-image" aria-label="Add image"><i class="bi bi-image"></i></label>
+                    <input class="d-none" id="pc-post-image" name="image" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
                     <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
                     <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                 </div>
@@ -56,10 +57,12 @@
                             </ul>
                         </div>
                     </div>
-                    <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ post.content }}</p>
-                    {% if post.media_path %}
+                    {% if post.content %}
+                        <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ post.content }}</p>
+                    {% endif %}
+                    {% if post.media_type == "image" and post.media_path %}
                         <div class="post-card-media">
-                            <img src="{{ url_for('static', filename=post.media_path) if not post.media_path.startswith('/') else post.media_path }}" alt="Media">
+                            <img src="{{ post_media_url(post) }}" alt="Post image">
                         </div>
                     {% endif %}
                     <div class="post-card-footer">

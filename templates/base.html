@@ -311,14 +311,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form class="d-flex gap-3" action="{{ url_for('create_post') }}" method="POST">
+                    <form class="d-flex gap-3" action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data">
                         <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="User Avatar">
                         <div class="flex-grow-1">
-                            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="4" maxlength="280" required></textarea>
+                            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="4" maxlength="280"></textarea>
                             
                             <div class="post-creator-toolbar">
                                 <div class="post-creator-actions">
-                                    <button class="post-creator-action-btn" title="Media" type="button"><i class="bi bi-image"></i></button>
+                                    <label class="post-creator-action-btn" title="Media" for="modal-post-image" aria-label="Add image"><i class="bi bi-image"></i></label>
+                                    <input class="d-none" id="modal-post-image" name="image" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
                                     <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
                                     <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                                 </div>

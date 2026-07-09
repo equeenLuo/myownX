@@ -473,6 +473,13 @@ a:hover {
     background-color: var(--myownx-theme-hover);
 }
 
+.btn-post-submit:disabled {
+    background-color: #8ecdf8 !important; /* 偏灰/半透明的天蓝色 */
+    opacity: 0.6;
+    color: #ffffff;
+    cursor: not-allowed;
+}
+
 /* 动态卡片 */
 .post-card {
     display: flex;

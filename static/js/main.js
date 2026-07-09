@@ -80,4 +80,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // 控制发帖按钮在内容为空时的禁用（变灰）状态
+    const postTextareas = document.querySelectorAll('.post-creator-textarea');
+    postTextareas.forEach(textarea => {
+        const form = textarea.closest('form');
+        if (form) {
+            const submitBtn = form.querySelector('.btn-post-submit');
+            if (submitBtn) {
+                // 初始化
+                submitBtn.disabled = textarea.value.trim().length === 0;
+
+                // 实时输入监听
+                textarea.addEventListener('input', function() {
+                    submitBtn.disabled = this.value.trim().length === 0;
+                });
+            }
+        }
+    });
 });

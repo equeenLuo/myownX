@@ -15,3 +15,6 @@ static/uploads/*
 !static/uploads/avatars/
 static/uploads/avatars/*
 !static/uploads/avatars/.gitkeep
+!static/uploads/posts/
+static/uploads/posts/*
+!static/uploads/posts/.gitkeep
