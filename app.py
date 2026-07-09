@@ -200,6 +200,13 @@ def create_app(config_class=Config):
             "has_reposted": has_reposted,
         }
 
+    @app.context_processor
+    def inject_unread_count():
+        if current_user.is_authenticated:
+            count = Notification.query.filter_by(recipient_id=current_user.id, is_read=False).count()
+            return {"unread_notifications_count": count}
+        return {"unread_notifications_count": 0}
+
     @app.get("/health")
     def health():
         return jsonify({"app": "myownX", "status": "ok"})
@@ -307,6 +314,12 @@ def create_app(config_class=Config):
         existing_like = Like.query.filter_by(user_id=current_user.id, post_id=post.id).first()
         if existing_like:
             db.session.delete(existing_like)
+            Notification.query.filter_by(
+                recipient_id=post.user_id,
+                actor_id=current_user.id,
+                post_id=post.id,
+                notification_type="like",
+            ).delete()
             db.session.commit()
             flash("Post unliked.", "success")
             return redirect_back("feed")
@@ -357,6 +370,12 @@ def create_app(config_class=Config):
         existing_repost = Post.query.filter_by(user_id=current_user.id, repost_from_id=source_post.id).first()
         if existing_repost:
             db.session.delete(existing_repost)
+            Notification.query.filter_by(
+                recipient_id=source_post.user_id,
+                actor_id=current_user.id,
+                post_id=source_post.id,
+                notification_type="repost",
+            ).delete()
             db.session.commit()
             flash("Post unreposted.", "success")
             return redirect_back("feed")
@@ -382,8 +401,20 @@ def create_app(config_class=Config):
         return placeholder("私信")
 
     @app.get("/notifications")
+    @login_required
     def notifications():
-        return placeholder("通知")
+        user_notifications = (
+            Notification.query.filter_by(recipient_id=current_user.id)
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .all()
+        )
+        unread_notification_ids = {notification.id for notification in user_notifications if not notification.is_read}
+        Notification.query.filter_by(recipient_id=current_user.id, is_read=False).update(
+            {"is_read": True},
+            synchronize_session=False,
+        )
+        db.session.commit()
+        return placeholder("通知", notifications=user_notifications, unread_notification_ids=unread_notification_ids)
 
     @app.get("/profile")
     @login_required
@@ -426,6 +457,7 @@ def create_app(config_class=Config):
 
         follow = Follow(follower_id=current_user.id, following_id=user.id)
         db.session.add(follow)
+        create_notification(user.id, "follow")
         db.session.commit()
         flash(f"You are now following {user.display_name or user.username}.", "success")
         return redirect_back("user_profile", user_id=user.id)
@@ -445,6 +477,11 @@ def create_app(config_class=Config):
             return redirect_back("user_profile", user_id=user.id)
 
         db.session.delete(follow)
+        Notification.query.filter_by(
+            recipient_id=user.id,
+            actor_id=current_user.id,
+            notification_type="follow",
+        ).delete()
         db.session.commit()
         flash(f"You unfollowed {user.display_name or user.username}.", "success")
         return redirect_back("user_profile", user_id=user.id)

@@ -175,61 +175,95 @@
     <!-- 3. Notifications Page -->
     {% elif request.path == '/notifications' %}
         <div class="d-flex border-bottom text-center">
-            <div class="flex-grow-1 py-3 fw-bold border-primary border-bottom-0" style="color: var(--myownx-text); border-bottom: 3px solid var(--myownx-theme) !important;">All</div>
-            <div class="flex-grow-1 py-3 text-muted" style="cursor: pointer;">Unread</div>
+            <div class="flex-grow-1 py-3 fw-bold border-primary border-bottom-0" style="color: var(--myownx-text); border-bottom: 3px solid var(--myownx-theme) !important; font-size: 1.05rem;">All Notifications</div>
         </div>
 
         <div class="notifications-feed">
-            <!-- Post Like Notification (Unread) -->
-            <div class="notification-card unread">
-                <div class="notification-icon">
-                    <i class="bi bi-heart-fill icon-like-fill"></i>
-                </div>
-                <div class="notification-body">
-                    <div class="notification-users">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="notification-avatar" alt="Avatar">
-                    </div>
-                    <div class="notification-content">
-                        <strong>Li Lei</strong> liked your post
-                    </div>
-                    <div class="notification-post-preview">
-                        First test post published successfully! Welcome to test and experience it locally. 👨‍💻🚀
-                    </div>
-                </div>
-            </div>
+            {% if notifications %}
+                {% for notification in notifications %}
+                    {% set actor = notification.actor %}
+                    {% set related_post = notification.post.repost_source if (notification.post and notification.post.repost_source) else notification.post %}
+                    {% set was_unread = unread_notification_ids is defined and notification.id in unread_notification_ids %}
+                    <div class="notification-card {% if was_unread %}unread{% endif %}">
+                        <div class="notification-icon">
+                            {% if notification.notification_type == 'like' %}
+                                <i class="bi bi-heart-fill icon-like-fill"></i>
+                            {% elif notification.notification_type == 'follow' %}
+                                <i class="bi bi-person-fill icon-follow"></i>
+                            {% elif notification.notification_type == 'comment' %}
+                                <i class="bi bi-chat-left-text-fill icon-comment-fill"></i>
+                            {% elif notification.notification_type == 'repost' %}
+                                <i class="bi bi-arrow-repeat icon-repost-fill"></i>
+                            {% elif notification.notification_type == 'message' %}
+                                <i class="bi bi-envelope-fill icon-comment-fill"></i>
+                            {% else %}
+                                <i class="bi bi-bell-fill icon-follow"></i>
+                            {% endif %}
+                        </div>
+                        <div class="notification-body">
+                            <div class="notification-users">
+                                {% if actor %}
+                                    <a href="{{ url_for('profile') if actor.id == current_user.id else url_for('user_profile', user_id=actor.id) }}">
+                                        <img src="{{ user_avatar_url(actor) }}" class="notification-avatar" alt="Avatar">
+                                    </a>
+                                {% else %}
+                                    <img src="{{ user_avatar_url(None) }}" class="notification-avatar" alt="Avatar">
+                                {% endif %}
+                            </div>
+                            <div class="notification-content">
+                                <strong>{% if actor %}{{ actor.display_name or actor.username }}{% else %}Someone{% endif %}</strong>
+                                {% if notification.notification_type == 'like' %}
+                                    liked your post
+                                {% elif notification.notification_type == 'follow' %}
+                                    followed you
+                                {% elif notification.notification_type == 'comment' %}
+                                    commented on your post
+                                {% elif notification.notification_type == 'repost' %}
+                                    reposted your post
+                                {% elif notification.notification_type == 'message' %}
+                                    sent you a message
+                                {% else %}
+                                    sent you a notification
+                                {% endif %}
+                            </div>
+                            {% if related_post %}
+                                <div class="notification-post-preview">
+                                    {% if related_post.content %}
+                                        {{ related_post.content|truncate(140) }}
+                                    {% elif related_post.media_type == 'image' %}
+                                        Image post
+                                    {% else %}
+                                        Related post
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            {% if notification.notification_type == 'comment' %}
+                                {% set actor_comments = [] %}
+                                {% if related_post and related_post.comments %}
+                                    {% for c in related_post.comments %}
+                                        {% if c.user_id == notification.actor_id %}
+                                            {% set _ = actor_comments.append(c) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                {% if actor_comments %}
+                                    {% set latest_comment = actor_comments|sort(attribute='created_at', reverse=True)|first %}
+                                    <div class="notification-comment-preview mt-2 p-2 rounded" style="background-color: rgba(255, 255, 255, 0.05); border-left: 2px solid var(--myownx-theme); font-size: 0.88rem; color: var(--myownx-text);">
+                                        “{{ latest_comment.content }}”
+                                    </div>
+                                {% endif %}
+                            {% endif %}
 
-            <!-- Follow Notification (Unread) -->
-            <div class="notification-card unread">
-                <div class="notification-icon">
-                    <i class="bi bi-person-fill icon-follow"></i>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-5 text-center text-muted border-bottom">
+                    <div class="mb-3"><i class="bi bi-bell" style="font-size: 2.5rem;"></i></div>
+                    <h5 class="fw-bold">No notifications yet.</h5>
+                    <p class="small mb-0">Likes, comments, reposts, follows, and messages will appear here.</p>
                 </div>
-                <div class="notification-body">
-                    <div class="notification-users">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="notification-avatar" alt="Avatar">
-                    </div>
-                    <div class="notification-content">
-                        <strong>Han Meimei</strong> followed you
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comment Notification (Read) -->
-            <div class="notification-card">
-                <div class="notification-icon">
-                    <i class="bi bi-chat-left-text-fill icon-comment-fill"></i>
-                </div>
-                <div class="notification-body">
-                    <div class="notification-users">
-                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="notification-avatar" alt="Avatar">
-                    </div>
-                    <div class="notification-content">
-                        <strong>Juejin Assistant</strong> commented on your post: "Awesome project, keep it up!"
-                    </div>
-                    <div class="notification-post-preview">
-                        myownX interface is basically complete! The sidebar navigation and widgets look amazing...
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
 
     <!-- 4. Messages / Chat Page -->

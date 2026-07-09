@@ -95,8 +95,13 @@
             <a href="{{ url_for('discover') }}" class="mobile-nav-link {% if request.path == '/discover' %}active{% endif %}">
                 <i class="bi {% if request.path == '/discover' %}bi-search-heart-fill{% else %}bi-search{% endif %}"></i>
             </a>
-            <a href="{{ url_for('notifications') }}" class="mobile-nav-link {% if request.path == '/notifications' %}active{% endif %}">
+            <a href="{{ url_for('notifications') }}" class="mobile-nav-link position-relative {% if request.path == '/notifications' %}active{% endif %}">
                 <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
+                {% if unread_notifications_count > 0 %}
+                    <span class="position-absolute top-0 start-50 translate-middle-y badge rounded-circle bg-primary" style="font-size: 0.62rem; padding: 2px 5px; transform: translate(5px, 8px) !important;">
+                        {{ unread_notifications_count }}
+                    </span>
+                {% endif %}
             </a>
             <a href="{{ url_for('messages') }}" class="mobile-nav-link {% if request.path == '/messages' %}active{% endif %}">
                 <i class="bi {% if request.path == '/messages' %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
@@ -133,7 +138,14 @@
                         </li>
                         <li>
                             <a href="{{ url_for('notifications') }}" class="menu-item {% if request.path == '/notifications' %}active{% endif %}">
-                                <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
+                                <span class="position-relative d-inline-flex">
+                                    <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
+                                    {% if unread_notifications_count > 0 %}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary" style="font-size: 0.62rem; padding: 2px 5px; margin-left: -2px; margin-top: 2px;">
+                                            {{ unread_notifications_count }}
+                                        </span>
+                                    {% endif %}
+                                </span>
                                 <span class="d-none d-xl-inline">Notifications</span>
                             </a>
                         </li>
