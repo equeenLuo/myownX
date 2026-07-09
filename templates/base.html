@@ -311,25 +311,36 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form class="d-flex gap-3" action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data">
+                    <form class="d-flex gap-3" action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" id="modal-post-form">
                         <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="User Avatar">
                         <div class="flex-grow-1">
-                            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="4" maxlength="280"></textarea>
+                            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="4" maxlength="280" id="modal-post-textarea"></textarea>
                             
+                            <!-- Local Image Preview Grid -->
+                            <div id="modal-image-preview-wrapper" class="post-image-preview-wrapper position-relative d-none mt-2 mb-2">
+                                <div id="modal-image-preview-grid" class="post-image-preview-grid"></div>
+                            </div>
+
                             <div class="post-creator-toolbar">
                                 <div class="post-creator-actions">
-                                    <label class="post-creator-action-btn" title="Media" for="modal-post-image" aria-label="Add image"><i class="bi bi-image"></i></label>
-                                    <input class="d-none" id="modal-post-image" name="image" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
+                                    <label class="post-creator-action-btn" title="Media" for="modal-post-image" aria-label="Add image" style="cursor: pointer;"><i class="bi bi-image"></i></label>
+                                    <input class="d-none" id="modal-post-image" name="images" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" multiple>
                                     <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
                                     <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                                 </div>
-                                <button class="btn-post-submit" type="submit">Post</button>
+                                <button class="btn-post-submit" id="modal-post-submit" type="submit">Post</button>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Global Lightbox Modal Overlay -->
+    <div id="globalLightbox" class="lightbox-overlay d-none" onclick="closeLightbox()">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <img id="lightboxImage" class="lightbox-content" src="" alt="Lightbox image" onclick="event.stopPropagation()">
     </div>
 
     <!-- Bootstrap 5 JS Bundle with Popper -->

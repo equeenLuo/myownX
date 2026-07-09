@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -18,6 +19,7 @@ login_manager.login_message_category = "info"
 DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_POST_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_POST_IMAGES = 4
 
 
 @login_manager.user_loader
@@ -31,6 +33,24 @@ def load_user(user_id):
 def file_extension(filename):
     safe_filename = secure_filename(filename)
     return safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else ""
+
+
+def parse_post_media_paths(media_path):
+    if not media_path:
+        return []
+
+    try:
+        parsed_paths = json.loads(media_path)
+    except (TypeError, json.JSONDecodeError):
+        return [media_path]
+
+    if isinstance(parsed_paths, list):
+        return [path for path in parsed_paths if isinstance(path, str) and path]
+
+    if isinstance(parsed_paths, str) and parsed_paths:
+        return [parsed_paths]
+
+    return []
 
 
 def create_app(config_class=Config):
@@ -60,14 +80,28 @@ def create_app(config_class=Config):
             return DEFAULT_AVATAR_URL
 
         def post_media_url(post):
-            if post and getattr(post, "media_path", None):
-                path = post.media_path
+            media_paths = parse_post_media_paths(getattr(post, "media_path", None))
+            if media_paths:
+                path = media_paths[0]
                 if path.startswith(("http://", "https://", "/")):
                     return path
                 return url_for("static", filename=path)
             return None
 
-        return {"user_avatar_url": user_avatar_url, "post_media_url": post_media_url}
+        def post_media_urls(post):
+            urls = []
+            for path in parse_post_media_paths(getattr(post, "media_path", None)):
+                if path.startswith(("http://", "https://", "/")):
+                    urls.append(path)
+                else:
+                    urls.append(url_for("static", filename=path))
+            return urls
+
+        return {
+            "user_avatar_url": user_avatar_url,
+            "post_media_url": post_media_url,
+            "post_media_urls": post_media_urls,
+        }
 
     @app.get("/health")
     def health():
@@ -92,29 +126,47 @@ def create_app(config_class=Config):
     @login_required
     def create_post():
         content = request.form.get("content", "").strip()
-        image_file = request.files.get("image")
-        has_image = bool(image_file and image_file.filename)
+        image_files = [
+            image_file
+            for image_file in request.files.getlist("images") + request.files.getlist("image")
+            if image_file and image_file.filename
+        ]
 
-        if not content and not has_image:
-            flash("Post content or image is required.", "error")
+        if not content and not image_files:
+            flash("Post content or images are required.", "error")
             return redirect(url_for("feed"))
 
         if len(content) > 280:
             flash("Post content must be 280 characters or fewer.", "error")
             return redirect(url_for("feed"))
 
+        if len(image_files) > MAX_POST_IMAGES:
+            flash("You can upload up to 4 images per post.", "error")
+            return redirect(url_for("feed"))
+
         media_path = None
         media_type = "text"
 
-        if has_image:
-            extension = file_extension(image_file.filename)
-            if extension not in ALLOWED_POST_IMAGE_EXTENSIONS:
-                flash("Post image must be a png, jpg, jpeg, gif, or webp file.", "error")
-                return redirect(url_for("feed"))
+        if image_files:
+            saved_paths = []
 
-            filename = f"post_{current_user.id}_{uuid4().hex}.{extension}"
-            image_file.save(post_upload_dir / filename)
-            media_path = f"uploads/posts/{filename}"
+            for image_file in image_files:
+                extension = file_extension(image_file.filename)
+                if extension not in ALLOWED_POST_IMAGE_EXTENSIONS:
+                    flash("Post images must be png, jpg, jpeg, gif, or webp files.", "error")
+                    return redirect(url_for("feed"))
+
+            for image_file in image_files:
+                extension = file_extension(image_file.filename)
+                filename = f"post_{current_user.id}_{uuid4().hex}.{extension}"
+                image_file.save(post_upload_dir / filename)
+                saved_paths.append(f"uploads/posts/{filename}")
+
+            if len(saved_paths) == 1:
+                media_path = saved_paths[0]
+            else:
+                media_path = json.dumps(saved_paths)
+
             media_type = "image"
 
         post = Post(

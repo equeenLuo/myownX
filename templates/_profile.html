@@ -101,9 +101,12 @@
                     {% if post.content %}
                         <p class="post-card-text">{{ post.content }}</p>
                     {% endif %}
-                    {% if post.media_type == "image" and post.media_path %}
-                        <div class="post-card-media">
-                            <img src="{{ post_media_url(post) }}" alt="Post image">
+                    {% set media_urls = post_media_urls(post) %}
+                    {% if post.media_type == "image" and media_urls %}
+                        <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }}">
+                            {% for media_url in media_urls[:4] %}
+                                <img src="{{ media_url }}" alt="Post image {{ loop.index }}">
+                            {% endfor %}
                         </div>
                     {% endif %}
                     <div class="post-card-footer">

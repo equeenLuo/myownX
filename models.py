@@ -27,7 +27,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
-    media_path = db.Column(db.String(255), nullable=True)
+    media_path = db.Column(db.Text, nullable=True)
     media_type = db.Column(db.String(20), nullable=False, default="text")
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 

@@ -2,18 +2,23 @@
 <div class="post-creator-box d-none d-md-flex">
     <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Avatar">
     <div class="post-creator-form">
-        <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" id="pc-post-form">
             <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="3" maxlength="280" id="pc-post-textarea"></textarea>
+            <!-- Local Image Preview Grid -->
+            <div id="pc-image-preview-wrapper" class="post-image-preview-wrapper position-relative d-none mt-2 mb-2">
+                <div id="pc-image-preview-grid" class="post-image-preview-grid"></div>
+            </div>
+
             <div class="post-creator-toolbar">
                 <div class="post-creator-actions">
-                    <label class="post-creator-action-btn" title="Media" for="pc-post-image" aria-label="Add image"><i class="bi bi-image"></i></label>
-                    <input class="d-none" id="pc-post-image" name="image" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp">
+                    <button class="post-creator-action-btn" id="pc-media-btn" title="Media" type="button"><i class="bi bi-image"></i></button>
+                    <input type="file" id="pc-post-image-input" name="images" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" multiple class="d-none">
                     <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
                     <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <span class="text-muted small" id="pc-char-counter">0/280</span>
-                    <button class="btn-post-submit" type="submit">Post</button>
+                    <button class="btn-post-submit" id="pc-post-submit" type="submit">Post</button>
                 </div>
             </div>
         </form>
@@ -32,7 +37,6 @@
                         <span class="post-author-handle">@{{ post.author.username }}</span>
                         <span class="post-dot">·</span>
                         <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d %H:%M') if (post.created_at and post.created_at.strftime) else '2d ago' }}</span>
-                        
                         <!-- Post Settings / Delete Option Dropdown Menu -->
                         <div class="dropdown ms-auto">
                             <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">
@@ -60,9 +64,13 @@
                     {% if post.content %}
                         <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ post.content }}</p>
                     {% endif %}
-                    {% if post.media_type == "image" and post.media_path %}
-                        <div class="post-card-media">
-                            <img src="{{ post_media_url(post) }}" alt="Post image">
+                    <!-- Dynamic Post Media Render -->
+                    {% set media_urls = post_media_urls(post) %}
+                    {% if media_urls and post.media_type == 'image' %}
+                        <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }} mt-2">
+                            {% for media_url in media_urls[:4] %}
+                                <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid">
+                            {% endfor %}
                         </div>
                     {% endif %}
                     <div class="post-card-footer">
@@ -84,22 +92,3 @@
         </div>
     {% endif %}
 </div>
-
-<!-- JS Character limit helper -->
-<script>
-    (function() {
-        const pcTextarea = document.getElementById('pc-post-textarea');
-        const pcCounter = document.getElementById('pc-char-counter');
-        if (pcTextarea && pcCounter) {
-            pcTextarea.addEventListener('input', function() {
-                const len = this.value.length;
-                pcCounter.textContent = `${len}/280`;
-                if (len > 280) {
-                    pcCounter.classList.add('text-danger');
-                } else {
-                    pcCounter.classList.remove('text-danger');
-                }
-            });
-        }
-    })();
-</script>
