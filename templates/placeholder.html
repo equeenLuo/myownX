@@ -69,90 +69,22 @@
 
 <!-- ==================== PC/Mobile Middle Column Content ==================== -->
 {% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="p-3 border-bottom">
+                {% for category, message in messages %}
+                    <div class="alert alert-{% if category == 'error' %}danger{% elif category == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show mb-0" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
     
     <!-- 1. Home / Feed Page -->
     {% if request.path in ['/', '/feed'] %}
-        <!-- PC Post Creator -->
-        <div class="post-creator-box d-none d-md-flex">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-creator-avatar" alt="Avatar">
-            <div class="post-creator-form">
-                <textarea class="post-creator-textarea" placeholder="What's happening?" rows="3"></textarea>
-                <div class="post-creator-toolbar">
-                    <div class="post-creator-actions">
-                        <button class="post-creator-action-btn" title="Media"><i class="bi bi-image"></i></button>
-                        <button class="post-creator-action-btn" title="Emoji"><i class="bi bi-emoji-smile"></i></button>
-                        <button class="post-creator-action-btn" title="Location"><i class="bi bi-geo-alt"></i></button>
-                    </div>
-                    <button class="btn-post-submit">Post</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Post Feed Cards -->
-        <div class="post-feed">
-            <!-- Post 1: Text type -->
-            <article class="post-card">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    <div class="post-card-header">
-                        <span class="post-author-name">Han Meimei</span>
-                        <span class="post-author-handle">@hanmeimei</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">2h ago</span>
-                    </div>
-                    <p class="post-card-text">First day on myownX! The interface of this social network looks so premium, giving off total X.com vibes, especially with that glassmorphism effect! Be sure to follow me guys~ 😄✨</p>
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>12</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">5</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">24</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Post 2: Image type -->
-            <article class="post-card">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    <div class="post-card-header">
-                        <span class="post-author-name">Li Lei</span>
-                        <span class="post-author-handle">@lilei</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">4h ago</span>
-                    </div>
-                    <p class="post-card-text">Sharing a scenic photo I took today, the weather is gorgeous. ☀️🌱 #SunnyDay #SimpleLife</p>
-                    <div class="post-card-media">
-                        <img src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=600&h=400&fit=crop" alt="Scenic">
-                    </div>
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>18</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">8</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">45</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Post 3: Info type -->
-            <article class="post-card">
-                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    <div class="post-card-header">
-                        <span class="post-author-name">Juejin Assistant</span>
-                        <span class="post-author-handle">@juejin</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">1d ago</span>
-                    </div>
-                    <p class="post-card-text">[Guide] Welcome to myownX! This is a local Web social platform built for classroom demo. It supports text, image, and video sharing, along with DMs and group chats. Go explore now! 🚀</p>
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>110</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">89</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">302</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                    </div>
-                </div>
-            </article>
-        </div>
+        {% include "_feed.html" %}
 
     <!-- 2. Explore Page -->
     {% elif request.path == '/discover' %}

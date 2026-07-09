@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import User, db
+from models import Post, User, db
 
 
 login_manager = LoginManager()
@@ -57,16 +57,57 @@ def create_app(config_class=Config):
     def health():
         return jsonify({"app": "myownX", "status": "ok"})
 
-    def placeholder(page_title):
-        return render_template("placeholder.html", page_title=page_title)
+    def latest_posts():
+        return Post.query.order_by(Post.created_at.desc()).all()
+
+    def placeholder(page_title, **context):
+        return render_template("placeholder.html", page_title=page_title, **context)
 
     @app.get("/")
     def index():
-        return placeholder("首页")
+        return placeholder("首页", posts=latest_posts())
 
     @app.get("/feed")
+    @login_required
     def feed():
-        return placeholder("信息流")
+        return placeholder("信息流", posts=latest_posts())
+
+    @app.post("/posts/create")
+    @login_required
+    def create_post():
+        content = request.form.get("content", "").strip()
+
+        if not content:
+            flash("Post content is required.", "error")
+            return redirect(url_for("feed"))
+
+        if len(content) > 280:
+            flash("Post content must be 280 characters or fewer.", "error")
+            return redirect(url_for("feed"))
+
+        post = Post(user_id=current_user.id, content=content, media_type="text")
+        db.session.add(post)
+        db.session.commit()
+        flash("Post created successfully.", "success")
+        return redirect(url_for("feed"))
+
+    @app.post("/posts/<int:post_id>/delete")
+    @login_required
+    def delete_post(post_id):
+        post = db.session.get(Post, post_id)
+
+        if not post:
+            flash("Post not found.", "error")
+            return redirect(url_for("feed"))
+
+        if post.user_id != current_user.id:
+            flash("You can only delete your own posts.", "error")
+            return redirect(url_for("feed"))
+
+        db.session.delete(post)
+        db.session.commit()
+        flash("Post deleted successfully.", "success")
+        return redirect(url_for("feed"))
 
     @app.get("/discover")
     def discover():
@@ -83,7 +124,8 @@ def create_app(config_class=Config):
     @app.get("/profile")
     @login_required
     def profile():
-        return placeholder("个人主页")
+        user_posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
+        return placeholder("个人主页", posts=user_posts)
 
     @app.route("/profile/edit", methods=["GET", "POST"])
     @login_required

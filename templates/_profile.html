@@ -3,13 +3,13 @@
     <a href="javascript:history.back()" class="text-dark me-4"><i class="bi bi-arrow-left fs-5"></i></a>
     <div>
         <h2 class="fw-bold mb-0" style="font-size: 1.25rem;">
-            {% if user %}
+            {% if user is defined and user %}
                 {{ user.display_name }}
             {% else %}
                 {{ current_user.display_name if (current_user and current_user.is_authenticated) else 'Demo User' }}
             {% endif %}
         </h2>
-        <span class="text-muted small">{{ posts|length if posts else '2' }} Posts</span>
+        <span class="text-muted small">{{ posts|length if posts else 0 }} Posts</span>
     </div>
 </div>
 
@@ -18,10 +18,10 @@
 
 <!-- Avatar and Actions Column -->
 <div class="profile-avatar-container">
-    <img src="{{ user_avatar_url(user if user else current_user) }}" class="profile-avatar" alt="Avatar">
+    <img src="{{ user_avatar_url(user if (user is defined and user) else current_user) }}" class="profile-avatar" alt="Avatar">
 
     {% if current_user and current_user.is_authenticated and (not user or user.id == current_user.id) %}
-        <a href="/profile/edit" class="btn-profile-edit">Edit profile</a>
+        <a href="{{ url_for('profile_edit') }}" class="btn-profile-edit">Edit profile</a>
     {% else %}
         <button class="btn btn-dark rounded-pill px-4 fw-bold mb-2">Follow</button>
     {% endif %}
@@ -30,25 +30,23 @@
 <!-- User Details Bio Info -->
 <div class="profile-meta-info">
     <div class="profile-realname">
-        {% if user %}
+        {% if user is defined and user %}
             {{ user.display_name }}
         {% else %}
             {{ current_user.display_name if (current_user and current_user.is_authenticated) else 'Demo User' }}
         {% endif %}
     </div>
     <div class="profile-username">
-        @{% if user %}{{ user.username }}{% else %}{{ current_user.username if (current_user and current_user.is_authenticated) else 'guest' }}{% endif %}
+        @{% if user is defined and user %}{{ user.username }}{% else %}{{ current_user.username if (current_user and current_user.is_authenticated) else 'guest' }}{% endif %}
     </div>
     
     <p class="profile-bio">
-        {% if user %}
+        {% if user is defined and user %}
             {{ user.bio or '' }}
+        {% elif current_user and current_user.is_authenticated %}
+            {{ current_user.bio or '' }}
         {% else %}
-            {% if current_user and current_user.is_authenticated %}
-                {{ current_user.bio or '' }}
-            {% else %}
-                Hello! I am the myownX experience officer. Exploring the local responsive UI design. Frontend logic is being continuously delivered!
-            {% endif %}
+            Hello! I am the myownX experience officer. Exploring the local responsive UI design. Frontend logic is being continuously delivered!
         {% endif %}
     </p>
     
@@ -76,13 +74,29 @@
     {% if posts %}
         {% for post in posts %}
             <article class="post-card">
-                <img src="{{ user_avatar_url(user if user else current_user) }}" class="post-card-avatar" alt="Avatar">
+                <img src="{{ user_avatar_url(user if (user is defined and user) else current_user) }}" class="post-card-avatar" alt="Avatar">
                 <div class="post-card-body">
                     <div class="post-card-header">
                         <span class="post-author-name">{% if user %}{{ user.display_name or user.username }}{% else %}{{ current_user.display_name or current_user.username }}{% endif %}</span>
                         <span class="post-author-handle">@{% if user %}{{ user.username }}{% else %}{{ current_user.username }}{% endif %}</span>
                         <span class="post-dot">·</span>
                         <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d') if (post.created_at and post.created_at.strftime) else '2d ago' }}</span>
+                        <div class="dropdown ms-auto">
+                            <button class="btn btn-sm btn-link text-muted text-decoration-none p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Post actions">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if current_user and current_user.is_authenticated and post.user_id == current_user.id %}
+                                    <li>
+                                        <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST">
+                                            <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                        </form>
+                                    </li>
+                                {% else %}
+                                    <li><span class="dropdown-item-text text-muted">No actions available</span></li>
+                                {% endif %}
+                            </ul>
+                        </div>
                     </div>
                     <p class="post-card-text">{{ post.content }}</p>
                     {% if post.media_path %}
@@ -100,43 +114,8 @@
             </article>
         {% endfor %}
     {% else %}
-        <!-- Simulated Fallback Posts when not in database -->
-        <article class="post-card">
-            <img src="{{ user_avatar_url(current_user if (current_user and current_user.is_authenticated) else None) }}" class="post-card-avatar" alt="Avatar">
-            <div class="post-card-body">
-                <div class="post-card-header">
-                    <span class="post-author-name">{% if current_user and current_user.is_authenticated %}{{ current_user.display_name }}{% else %}Demo User{% endif %}</span>
-                    <span class="post-author-handle">@{% if current_user and current_user.is_authenticated %}{{ current_user.username }}{% else %}guest{% endif %}</span>
-                    <span class="post-dot">·</span>
-                    <span class="post-time">2d ago</span>
-                </div>
-                <p class="post-card-text">myownX interface is basically complete! The sidebar navigation and widgets look amazing, looking forward to the backend integration! 💻💪</p>
-                <div class="post-card-footer">
-                    <button class="post-action action-comment"><i class="bi bi-chat"></i><span>2</span></button>
-                    <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
-                    <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">5</span></button>
-                    <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                </div>
-            </div>
-        </article>
-
-        <article class="post-card">
-            <img src="{{ user_avatar_url(current_user if (current_user and current_user.is_authenticated) else None) }}" class="post-card-avatar" alt="Avatar">
-            <div class="post-card-body">
-                <div class="post-card-header">
-                    <span class="post-author-name">{% if current_user and current_user.is_authenticated %}{{ current_user.display_name }}{% else %}Demo User{% endif %}</span>
-                    <span class="post-author-handle">@{% if current_user and current_user.is_authenticated %}{{ current_user.username }}{% else %}guest{% endif %}</span>
-                    <span class="post-dot">·</span>
-                    <span class="post-time">3d ago</span>
-                </div>
-                <p class="post-card-text">First test post published successfully! Welcome to test and experience it locally. 👨‍💻🚀</p>
-                <div class="post-card-footer">
-                    <button class="post-action action-comment"><i class="bi bi-chat"></i><span>6</span></button>
-                    <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">1</span></button>
-                    <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">12</span></button>
-                    <button class="post-action action-share"><i class="bi bi-share"></i></button>
-                </div>
-            </div>
-        </article>
+        <div class="p-4 text-center text-muted border-bottom">
+            No posts yet.
+        </div>
     {% endif %}
 </div>

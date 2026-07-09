@@ -311,21 +311,21 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex gap-3">
-                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" class="post-creator-avatar" alt="User Avatar">
+                    <form class="d-flex gap-3" action="{{ url_for('create_post') }}" method="POST">
+                        <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="User Avatar">
                         <div class="flex-grow-1">
-                            <textarea class="post-creator-textarea" placeholder="What's happening?" rows="4"></textarea>
+                            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="4" maxlength="280" required></textarea>
                             
                             <div class="post-creator-toolbar">
                                 <div class="post-creator-actions">
-                                    <button class="post-creator-action-btn" title="Media"><i class="bi bi-image"></i></button>
-                                    <button class="post-creator-action-btn" title="Emoji"><i class="bi bi-emoji-smile"></i></button>
-                                    <button class="post-creator-action-btn" title="Location"><i class="bi bi-geo-alt"></i></button>
+                                    <button class="post-creator-action-btn" title="Media" type="button"><i class="bi bi-image"></i></button>
+                                    <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
+                                    <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                                 </div>
-                                <button class="btn-post-submit" data-bs-dismiss="modal">Post</button>
+                                <button class="btn-post-submit" type="submit">Post</button>
                             </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
