@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
-from sqlalchemy import inspect, text
+from sqlalchemy import func, inspect, text
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -107,6 +107,16 @@ def create_app(config_class=Config):
             query = query.filter(User.id != current_user.id).filter(~User.id.in_(followed_ids))
 
         return query.limit(limit).all()
+
+    def hot_posts(limit=5):
+        return (
+            Post.query.outerjoin(Like, Like.post_id == Post.id)
+            .filter(Post.repost_from_id.is_(None))
+            .group_by(Post.id)
+            .order_by(func.count(Like.id).desc(), Post.created_at.desc(), Post.id.desc())
+            .limit(limit)
+            .all()
+        )
 
     def messageable_users(limit=10):
         query = User.query.order_by(User.created_at.desc(), User.id.desc())
@@ -271,6 +281,7 @@ def create_app(config_class=Config):
             "following_count": following_count,
             "is_following": is_following,
             "recommended_users": recommended_users,
+            "hot_posts": hot_posts,
             "messageable_users": messageable_users,
             "like_count": like_count,
             "comment_count": comment_count,
@@ -504,7 +515,7 @@ def create_app(config_class=Config):
 
     @app.get("/discover")
     def discover():
-        return placeholder("发现", users=recommended_users(limit=10))
+        return placeholder("发现", users=recommended_users(limit=10), hot_posts=hot_posts(limit=5))
 
     @app.get("/messages")
     @login_required

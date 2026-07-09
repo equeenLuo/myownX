@@ -140,38 +140,115 @@
             {% endif %}
         </div>
 
-        <!-- Trends Section -->
+        <!-- Hot Posts Section -->
         <div class="discover-trends">
-            <h5 class="fw-bold p-3 mb-0 border-bottom">Trends</h5>
-            
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted small">Technology · Trending</div>
-                    <div class="fw-bold">#myownXIsLive</div>
-                    <div class="text-muted small">12K Posts</div>
+            <h5 class="fw-bold p-3 mb-0 border-bottom">Hot posts</h5>
+            {% if hot_posts %}
+                {% for post in hot_posts %}
+                    {% set display_post = post.repost_source if post.repost_source else post %}
+                    <article class="post-card p-3 border-bottom">
+                        <div class="d-flex gap-3">
+                            <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                            <div class="post-card-body flex-grow-1 min-width-0">
+                                {% if post.repost_source %}
+                                    <div class="text-muted small mb-1">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        {{ post.author.display_name or post.author.username }} reposted
+                                    </div>
+                                {% endif %}
+                                <div class="post-card-header d-flex align-items-center">
+                                    <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none d-flex align-items-center gap-1 min-width-0">
+                                        <span class="post-author-name fw-bold text-truncate" style="max-width: 140px;">{{ display_post.author.display_name or display_post.author.username }}</span>
+                                        <span class="post-author-handle text-muted text-truncate" style="max-width: 100px;">@{{ display_post.author.username }}</span>
+                                    </a>
+                                    <span class="post-dot text-muted">·</span>
+                                    <span class="post-time text-muted">{{ display_post.created_at.strftime('%Y-%m-%d %H:%M') if (display_post.created_at and display_post.created_at.strftime) else '' }}</span>
+                                    <!-- Post Settings / Delete Option Dropdown Menu -->
+                                    <div class="dropdown ms-auto">
+                                        <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-4 p-1" style="background-color: #15181c; min-width: 150px;">
+                                            {% if current_user.is_authenticated and current_user.id == post.user_id %}
+                                                <li>
+                                                    <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                                        <button type="submit" class="dropdown-item text-danger py-2 rounded-3 fw-bold d-flex align-items-center gap-2">
+                                                            <i class="bi bi-trash"></i> Delete Post
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <button class="dropdown-item text-white py-2 rounded-3 d-flex align-items-center gap-2" onclick="alert('Report submitted. Thank you!')">
+                                                        <i class="bi bi-flag"></i> Report Post
+                                                    </button>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% if display_post.content %}
+                                    <p class="post-card-text mt-2" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
+                                {% endif %}
+                                <!-- Dynamic Post Media Render -->
+                                {% set media_urls = post_media_urls(display_post) %}
+                                {% if media_urls and display_post.media_type == 'image' %}
+                                    <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }} mt-2">
+                                        {% for media_url in media_urls[:4] %}
+                                            <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid" style="cursor: pointer;" onclick="viewFullImage('{{ media_url }}')">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% set comments = post_comments(display_post) %}
+                                {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
+                                <div class="post-card-footer mt-3 d-flex justify-content-between text-muted" style="max-width: 425px;">
+                                    <button class="post-action action-comment border-0 bg-transparent text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#comments-discover-{{ post.id }}" aria-expanded="false" aria-controls="comments-discover-{{ post.id }}">
+                                        <i class="bi bi-chat"></i> <span class="ms-1">{{ comments|length }}</span>
+                                    </button>
+                                    <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form m-0">
+                                        <button class="post-action action-repost border-0 bg-transparent {% if has_reposted(display_post) %}reposted text-success{% else %}text-muted{% endif %}" type="submit" aria-label="Repost">
+                                            <i class="bi bi-arrow-repeat"></i> <span class="ms-1 repost-count">{{ repost_count(display_post) }}</span>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form m-0">
+                                        <button class="post-action action-like border-0 bg-transparent {% if liked %}liked text-danger{% else %}text-muted{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
+                                            <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i> <span class="ms-1 like-count">{{ like_count(display_post) }}</span>
+                                        </button>
+                                    </form>
+                                    <button class="post-action action-share border-0 bg-transparent text-muted" type="button" onclick="navigator.clipboard.writeText('{{ url_for('user_profile', user_id=display_post.author.id, _external=True) }}'); alert('Link copied to clipboard!');"><i class="bi bi-share"></i></button>
+                                </div>
+                                <div class="post-comments collapse" id="comments-discover-{{ post.id }}">
+                                    <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form mt-2 d-flex gap-2">
+                                        <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
+                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3" style="background-color: var(--myownx-theme); border: none; font-weight: 700;">Reply</button>
+                                    </form>
+                                    {% if comments %}
+                                        <div class="post-comment-list mt-2">
+                                            {% for comment in comments %}
+                                                <div class="post-comment-item p-2 rounded mb-2 d-flex gap-2 align-items-start" style="background-color: var(--myownx-light);">
+                                                    <img src="{{ user_avatar_url(comment.user) }}" class="post-comment-avatar" alt="Avatar" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                                                    <div class="flex-grow-1 min-width-0">
+                                                        <div class="post-comment-meta d-flex gap-2">
+                                                            <span class="fw-bold" style="font-size: 0.85rem;">{{ comment.user.display_name or comment.user.username }}</span>
+                                                            <span class="text-muted" style="font-size: 0.75rem;">@{{ comment.user.username }}</span>
+                                                        </div>
+                                                        <div class="post-comment-content mt-1" style="font-size: 0.85rem; word-break: break-word; color: var(--myownx-text);">{{ comment.content }}</div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="p-4 text-center text-muted border-bottom">
+                    No hot posts yet.
                 </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">View</button>
-            </div>
-
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted small">Education · Trending</div>
-                    <div class="fw-bold">#WebSocialNetwork</div>
-                    <div class="text-muted small">854 Posts</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">View</button>
-            </div>
-
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted small">Programming · Trending</div>
-                    <div class="fw-bold">#PythonFlaskBackend</div>
-                    <div class="text-muted small">2.3K Posts</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3">View</button>
-            </div>
+            {% endif %}
         </div>
-
     <!-- 3. Notifications Page -->
     {% elif request.path == '/notifications' %}
         <div class="d-flex border-bottom text-center">
