@@ -31,6 +31,8 @@ class User(UserMixin, db.Model):
         back_populates="following",
         cascade="all, delete-orphan",
     )
+    likes = db.relationship("Like", back_populates="user", cascade="all, delete-orphan")
+    comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
 
 
 class Post(db.Model):
@@ -44,6 +46,8 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     author = db.relationship("User", back_populates="posts")
+    likes = db.relationship("Like", back_populates="post", cascade="all, delete-orphan")
+    comments = db.relationship("Comment", back_populates="post", cascade="all, delete-orphan")
 
 
 class Follow(db.Model):
@@ -60,3 +64,47 @@ class Follow(db.Model):
 
     follower = db.relationship("User", foreign_keys=[follower_id], back_populates="following")
     following = db.relationship("User", foreign_keys=[following_id], back_populates="followers")
+
+
+class Like(db.Model):
+    __tablename__ = "likes"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "post_id", name="uq_user_post_like"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="likes")
+    post = db.relationship("Post", back_populates="likes")
+
+
+class Comment(db.Model):
+    __tablename__ = "comments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User", back_populates="comments")
+    post = db.relationship("Post", back_populates="comments")
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True, index=True)
+    notification_type = db.Column(db.String(20), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+    actor = db.relationship("User", foreign_keys=[actor_id])
+    post = db.relationship("Post")

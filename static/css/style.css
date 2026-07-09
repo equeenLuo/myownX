@@ -731,6 +731,10 @@ a:hover {
     margin-top: 10px;
 }
 
+.post-action-form {
+    margin: 0;
+}
+
 .post-action {
     background: none;
     border: none;
@@ -783,6 +787,51 @@ a:hover {
 }
 .action-like.liked {
     color: var(--myownx-danger);
+}
+
+.post-comments {
+    margin-top: 10px;
+    border-top: 1px solid var(--myownx-border);
+    padding-top: 10px;
+}
+
+.post-comment-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.post-comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.post-comment-item {
+    display: flex;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.post-comment-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.post-comment-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.post-comment-content {
+    color: var(--myownx-text);
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .action-share:hover {

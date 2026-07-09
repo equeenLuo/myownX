@@ -26,28 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 交互微动画与状态模拟
-    // 点赞模拟
-    const likeButtons = document.querySelectorAll('.action-like');
-    likeButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const icon = this.querySelector('i');
-            const countSpan = this.querySelector('.like-count');
-            let count = parseInt(countSpan.textContent) || 0;
-            
-            if (this.classList.contains('liked')) {
-                this.classList.remove('liked');
-                icon.className = 'bi bi-heart';
-                countSpan.textContent = count - 1 > 0 ? count - 1 : '';
-            } else {
-                this.classList.add('liked');
-                icon.className = 'bi bi-heart-fill text-danger';
-                countSpan.textContent = count + 1;
-            }
-        });
-    });
-
-    // 转发模拟
+    // 转发模拟（后端转发留给后续任务）
     const repostButtons = document.querySelectorAll('.action-repost');
     repostButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {

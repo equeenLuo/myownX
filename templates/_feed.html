@@ -73,11 +73,41 @@
                             {% endfor %}
                         </div>
                     {% endif %}
+                    {% set comments = post_comments(post) %}
+                    {% set liked = current_user and current_user.is_authenticated and has_liked(post) %}
                     <div class="post-card-footer">
-                        <button class="post-action action-comment"><i class="bi bi-chat"></i><span>0</span></button>
-                        <button class="post-action action-repost"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
-                        <button class="post-action action-like"><i class="bi bi-heart"></i><span class="like-count">0</span></button>
-                        <button class="post-action action-share"><i class="bi bi-share"></i></button>
+                        <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}" aria-expanded="false" aria-controls="comments-{{ post.id }}">
+                            <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
+                        </button>
+                        <button class="post-action action-repost" type="button"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
+                        <form action="{{ url_for('toggle_like', post_id=post.id) }}" method="POST" class="post-action-form">
+                            <button class="post-action action-like {% if liked %}liked{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
+                                <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(post) }}</span>
+                            </button>
+                        </form>
+                        <button class="post-action action-share" type="button"><i class="bi bi-share"></i></button>
+                    </div>
+                    <div class="post-comments collapse" id="comments-{{ post.id }}">
+                        <form action="{{ url_for('create_comment', post_id=post.id) }}" method="POST" class="post-comment-form">
+                            <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
+                            <button type="submit" class="btn btn-sm btn-primary rounded-pill">Reply</button>
+                        </form>
+                        {% if comments %}
+                            <div class="post-comment-list">
+                                {% for comment in comments %}
+                                    <div class="post-comment-item">
+                                        <img src="{{ user_avatar_url(comment.user) }}" class="post-comment-avatar" alt="Avatar">
+                                        <div>
+                                            <div class="post-comment-meta">
+                                                <span class="fw-bold">{{ comment.user.display_name or comment.user.username }}</span>
+                                                <span class="text-muted">@{{ comment.user.username }}</span>
+                                            </div>
+                                            <div class="post-comment-content">{{ comment.content }}</div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </article>

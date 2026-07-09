@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import Follow, Post, User, db
+from models import Comment, Follow, Like, Notification, Post, User, db
 
 
 login_manager = LoginManager()
@@ -20,6 +20,7 @@ DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1535713875002-d1d0cf377f
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_POST_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_POST_IMAGES = 4
+MAX_COMMENT_LENGTH = 280
 
 
 @login_manager.user_loader
@@ -93,6 +94,38 @@ def create_app(config_class=Config):
 
         return query.limit(limit).all()
 
+    def like_count(post):
+        if not post:
+            return 0
+        return Like.query.filter_by(post_id=post.id).count()
+
+    def comment_count(post):
+        if not post:
+            return 0
+        return Comment.query.filter_by(post_id=post.id).count()
+
+    def has_liked(post):
+        if not post or not current_user or not current_user.is_authenticated:
+            return False
+        return Like.query.filter_by(user_id=current_user.id, post_id=post.id).first() is not None
+
+    def post_comments(post):
+        if not post:
+            return []
+        return Comment.query.filter_by(post_id=post.id).order_by(Comment.created_at.asc()).all()
+
+    def create_notification(recipient_id, notification_type, post_id=None):
+        if not current_user or not current_user.is_authenticated or recipient_id == current_user.id:
+            return
+
+        notification = Notification(
+            recipient_id=recipient_id,
+            actor_id=current_user.id,
+            post_id=post_id,
+            notification_type=notification_type,
+        )
+        db.session.add(notification)
+
     def redirect_back(default_endpoint="feed", **values):
         target = request.referrer
         if target:
@@ -135,6 +168,10 @@ def create_app(config_class=Config):
             "following_count": following_count,
             "is_following": is_following,
             "recommended_users": recommended_users,
+            "like_count": like_count,
+            "comment_count": comment_count,
+            "has_liked": has_liked,
+            "post_comments": post_comments,
         }
 
     @app.get("/health")
@@ -231,6 +268,55 @@ def create_app(config_class=Config):
         db.session.commit()
         flash("Post deleted successfully.", "success")
         return redirect(url_for("feed"))
+
+    @app.post("/posts/<int:post_id>/like")
+    @login_required
+    def toggle_like(post_id):
+        post = db.session.get(Post, post_id)
+
+        if not post:
+            flash("Post not found.", "error")
+            return redirect_back("feed")
+
+        existing_like = Like.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+        if existing_like:
+            db.session.delete(existing_like)
+            db.session.commit()
+            flash("Post unliked.", "success")
+            return redirect_back("feed")
+
+        like = Like(user_id=current_user.id, post_id=post.id)
+        db.session.add(like)
+        create_notification(post.user_id, "like", post_id=post.id)
+        db.session.commit()
+        flash("Post liked.", "success")
+        return redirect_back("feed")
+
+    @app.post("/posts/<int:post_id>/comment")
+    @login_required
+    def create_comment(post_id):
+        post = db.session.get(Post, post_id)
+
+        if not post:
+            flash("Post not found.", "error")
+            return redirect_back("feed")
+
+        content = request.form.get("content", "").strip()
+
+        if not content:
+            flash("Comment content is required.", "error")
+            return redirect_back("feed")
+
+        if len(content) > MAX_COMMENT_LENGTH:
+            flash("Comment content must be 280 characters or fewer.", "error")
+            return redirect_back("feed")
+
+        comment = Comment(user_id=current_user.id, post_id=post.id, content=content)
+        db.session.add(comment)
+        create_notification(post.user_id, "comment", post_id=post.id)
+        db.session.commit()
+        flash("Comment added successfully.", "success")
+        return redirect_back("feed")
 
     @app.get("/discover")
     def discover():
