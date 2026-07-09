@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from sqlalchemy import inspect, text
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -54,6 +55,17 @@ def parse_post_media_paths(media_path):
     return []
 
 
+def ensure_schema_updates(app):
+    inspector = inspect(db.engine)
+    if "posts" not in inspector.get_table_names():
+        return
+
+    post_columns = {column["name"] for column in inspector.get_columns("posts")}
+    if "repost_from_id" not in post_columns:
+        with db.engine.begin() as connection:
+            connection.execute(text("ALTER TABLE posts ADD COLUMN repost_from_id INTEGER"))
+
+
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
@@ -69,6 +81,7 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        ensure_schema_updates(app)
 
     def follower_count(user):
         if not user:
@@ -113,6 +126,17 @@ def create_app(config_class=Config):
         if not post:
             return []
         return Comment.query.filter_by(post_id=post.id).order_by(Comment.created_at.asc()).all()
+
+    def repost_count(post):
+        if not post:
+            return 0
+        return Post.query.filter_by(repost_from_id=post.id).count()
+
+    def has_reposted(post):
+        if not post or not current_user or not current_user.is_authenticated:
+            return False
+        target_post = post.repost_source if post.repost_source else post
+        return Post.query.filter_by(user_id=current_user.id, repost_from_id=target_post.id).first() is not None
 
     def create_notification(recipient_id, notification_type, post_id=None):
         if not current_user or not current_user.is_authenticated or recipient_id == current_user.id:
@@ -172,6 +196,8 @@ def create_app(config_class=Config):
             "comment_count": comment_count,
             "has_liked": has_liked,
             "post_comments": post_comments,
+            "repost_count": repost_count,
+            "has_reposted": has_reposted,
         }
 
     @app.get("/health")
@@ -316,6 +342,35 @@ def create_app(config_class=Config):
         create_notification(post.user_id, "comment", post_id=post.id)
         db.session.commit()
         flash("Comment added successfully.", "success")
+        return redirect_back("feed")
+
+    @app.post("/posts/<int:post_id>/repost")
+    @login_required
+    def create_repost(post_id):
+        post = db.session.get(Post, post_id)
+
+        if not post:
+            flash("Post not found.", "error")
+            return redirect_back("feed")
+
+        source_post = post.repost_source if post.repost_source else post
+        existing_repost = Post.query.filter_by(user_id=current_user.id, repost_from_id=source_post.id).first()
+        if existing_repost:
+            db.session.delete(existing_repost)
+            db.session.commit()
+            flash("Post unreposted.", "success")
+            return redirect_back("feed")
+
+        repost = Post(
+            user_id=current_user.id,
+            content="",
+            media_type="text",
+            repost_from_id=source_post.id,
+        )
+        db.session.add(repost)
+        create_notification(source_post.user_id, "repost", post_id=source_post.id)
+        db.session.commit()
+        flash("Post reposted successfully.", "success")
         return redirect_back("feed")
 
     @app.get("/discover")

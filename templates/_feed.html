@@ -29,14 +29,21 @@
 <div class="post-feed">
     {% if posts %}
         {% for post in posts %}
+            {% set display_post = post.repost_source if post.repost_source else post %}
             <article class="post-card">
-                <img src="{{ user_avatar_url(post.author) }}" class="post-card-avatar" alt="Avatar">
+                <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
                 <div class="post-card-body">
+                    {% if post.repost_source %}
+                        <div class="text-muted small mb-1">
+                            <i class="bi bi-arrow-repeat"></i>
+                            {{ post.author.display_name or post.author.username }} reposted
+                        </div>
+                    {% endif %}
                     <div class="post-card-header d-flex align-items-center">
-                        <span class="post-author-name">{{ post.author.display_name or post.author.username }}</span>
-                        <span class="post-author-handle">@{{ post.author.username }}</span>
+                        <span class="post-author-name">{{ display_post.author.display_name or display_post.author.username }}</span>
+                        <span class="post-author-handle">@{{ display_post.author.username }}</span>
                         <span class="post-dot">·</span>
-                        <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d %H:%M') if (post.created_at and post.created_at.strftime) else '2d ago' }}</span>
+                        <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d %H:%M') if (display_post.created_at and display_post.created_at.strftime) else '2d ago' }}</span>
                         <!-- Post Settings / Delete Option Dropdown Menu -->
                         <div class="dropdown ms-auto">
                             <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">
@@ -61,34 +68,38 @@
                             </ul>
                         </div>
                     </div>
-                    {% if post.content %}
-                        <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ post.content }}</p>
+                    {% if display_post.content %}
+                        <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
                     {% endif %}
                     <!-- Dynamic Post Media Render -->
-                    {% set media_urls = post_media_urls(post) %}
-                    {% if media_urls and post.media_type == 'image' %}
+                    {% set media_urls = post_media_urls(display_post) %}
+                    {% if media_urls and display_post.media_type == 'image' %}
                         <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }} mt-2">
                             {% for media_url in media_urls[:4] %}
                                 <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid">
                             {% endfor %}
                         </div>
                     {% endif %}
-                    {% set comments = post_comments(post) %}
-                    {% set liked = current_user and current_user.is_authenticated and has_liked(post) %}
+                    {% set comments = post_comments(display_post) %}
+                    {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
                     <div class="post-card-footer">
                         <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}" aria-expanded="false" aria-controls="comments-{{ post.id }}">
                             <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
                         </button>
-                        <button class="post-action action-repost" type="button"><i class="bi bi-arrow-repeat"></i><span class="repost-count">0</span></button>
-                        <form action="{{ url_for('toggle_like', post_id=post.id) }}" method="POST" class="post-action-form">
+                        <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
+                            <button class="post-action action-repost {% if has_reposted(display_post) %}reposted{% endif %}" type="submit" aria-label="Repost">
+                                <i class="bi bi-arrow-repeat"></i><span class="repost-count">{{ repost_count(display_post) }}</span>
+                            </button>
+                        </form>
+                        <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form">
                             <button class="post-action action-like {% if liked %}liked{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
-                                <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(post) }}</span>
+                                <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(display_post) }}</span>
                             </button>
                         </form>
                         <button class="post-action action-share" type="button"><i class="bi bi-share"></i></button>
                     </div>
                     <div class="post-comments collapse" id="comments-{{ post.id }}">
-                        <form action="{{ url_for('create_comment', post_id=post.id) }}" method="POST" class="post-comment-form">
+                        <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form">
                             <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
                             <button type="submit" class="btn btn-sm btn-primary rounded-pill">Reply</button>
                         </form>

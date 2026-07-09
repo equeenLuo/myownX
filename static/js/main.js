@@ -25,28 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 交互微动画与状态模拟
-    // 转发模拟（后端转发留给后续任务）
-    const repostButtons = document.querySelectorAll('.action-repost');
-    repostButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const icon = this.querySelector('i');
-            const countSpan = this.querySelector('.repost-count');
-            let count = parseInt(countSpan.textContent) || 0;
-            
-            if (this.classList.contains('reposted')) {
-                this.classList.remove('reposted');
-                icon.className = 'bi bi-arrow-repeat';
-                countSpan.textContent = count - 1 > 0 ? count - 1 : '';
-            } else {
-                this.classList.add('reposted');
-                icon.className = 'bi bi-arrow-repeat text-success fw-bold';
-                countSpan.textContent = count + 1;
-            }
-        });
-    });
-
     // 评论模态框或发帖模态框触发器
     // 主要是悬浮 + 按钮拉起 Bootstrap 发帖 modal
     const mobileFab = document.getElementById('mobileFab');
