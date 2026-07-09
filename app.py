@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import Comment, Follow, Like, Notification, Post, User, db
+from models import Comment, Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, db
 
 
 login_manager = LoginManager()
@@ -22,6 +22,7 @@ ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_POST_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_POST_IMAGES = 4
 MAX_COMMENT_LENGTH = 280
+MAX_MESSAGE_LENGTH = 1000
 
 
 @login_manager.user_loader
@@ -107,6 +108,14 @@ def create_app(config_class=Config):
 
         return query.limit(limit).all()
 
+    def messageable_users(limit=10):
+        query = User.query.order_by(User.created_at.desc(), User.id.desc())
+
+        if current_user and current_user.is_authenticated:
+            query = query.filter(User.id != current_user.id)
+
+        return query.limit(limit).all()
+
     def like_count(post):
         if not post:
             return 0
@@ -156,6 +165,76 @@ def create_app(config_class=Config):
             return redirect(target)
         return redirect(url_for(default_endpoint, **values))
 
+    def conversation_last_message(conversation):
+        if not conversation:
+            return None
+        return (
+            Message.query.filter_by(conversation_id=conversation.id)
+            .order_by(Message.created_at.desc(), Message.id.desc())
+            .first()
+        )
+
+    def conversation_messages(conversation):
+        if not conversation:
+            return []
+        return (
+            Message.query.filter_by(conversation_id=conversation.id)
+            .order_by(Message.created_at.asc(), Message.id.asc())
+            .all()
+        )
+
+    def conversation_other_user(conversation):
+        if not conversation or not current_user or not current_user.is_authenticated:
+            return None
+
+        for member in conversation.members:
+            if member.user_id != current_user.id:
+                return member.user
+        return None
+
+    def user_conversations():
+        if not current_user or not current_user.is_authenticated:
+            return []
+
+        conversations = (
+            Conversation.query.join(ConversationMember)
+            .filter(ConversationMember.user_id == current_user.id)
+            .filter(Conversation.conversation_type == "private")
+            .all()
+        )
+        return sorted(
+            conversations,
+            key=lambda conversation: (
+                conversation_last_message(conversation).created_at
+                if conversation_last_message(conversation)
+                else conversation.created_at
+            ),
+            reverse=True,
+        )
+
+    def is_conversation_member(conversation):
+        if not conversation or not current_user or not current_user.is_authenticated:
+            return False
+        return (
+            ConversationMember.query.filter_by(
+                conversation_id=conversation.id,
+                user_id=current_user.id,
+            ).first()
+            is not None
+        )
+
+    def private_conversation_with(user_id):
+        current_conversation_ids = db.session.query(ConversationMember.conversation_id).filter_by(
+            user_id=current_user.id
+        )
+        return (
+            Conversation.query.join(ConversationMember)
+            .filter(Conversation.conversation_type == "private")
+            .filter(Conversation.id.in_(current_conversation_ids))
+            .filter(ConversationMember.user_id == user_id)
+            .first()
+        )
+
     @app.context_processor
     def utility_processor():
         def user_avatar_url(user):
@@ -192,20 +271,51 @@ def create_app(config_class=Config):
             "following_count": following_count,
             "is_following": is_following,
             "recommended_users": recommended_users,
+            "messageable_users": messageable_users,
             "like_count": like_count,
             "comment_count": comment_count,
             "has_liked": has_liked,
             "post_comments": post_comments,
             "repost_count": repost_count,
             "has_reposted": has_reposted,
+            "conversation_last_message": conversation_last_message,
+            "conversation_messages": conversation_messages,
+            "conversation_other_user": conversation_other_user,
         }
 
     @app.context_processor
     def inject_unread_count():
         if current_user.is_authenticated:
-            count = Notification.query.filter_by(recipient_id=current_user.id, is_read=False).count()
+            count = (
+                Notification.query.filter_by(recipient_id=current_user.id, is_read=False)
+                .filter(Notification.notification_type != "message")
+                .count()
+            )
             return {"unread_notifications_count": count}
         return {"unread_notifications_count": 0}
+
+    @app.context_processor
+    def inject_unread_messages():
+        if current_user.is_authenticated:
+            count = Notification.query.filter_by(
+                recipient_id=current_user.id,
+                is_read=False,
+                notification_type="message",
+            ).count()
+            return {"unread_messages_count": count}
+        return {"unread_messages_count": 0}
+
+    @app.context_processor
+    def inject_unread_senders():
+        if current_user.is_authenticated:
+            unread_notifications = Notification.query.filter_by(
+                recipient_id=current_user.id,
+                is_read=False,
+                notification_type="message",
+            ).all()
+            unread_sender_ids = {notification.actor_id for notification in unread_notifications}
+            return {"unread_sender_ids": unread_sender_ids}
+        return {"unread_sender_ids": set()}
 
     @app.get("/health")
     def health():
@@ -397,21 +507,108 @@ def create_app(config_class=Config):
         return placeholder("发现", users=recommended_users(limit=10))
 
     @app.get("/messages")
+    @login_required
     def messages():
-        return placeholder("私信")
+        return placeholder("私信", conversations=user_conversations(), users=messageable_users(limit=10))
+
+    @app.post("/messages/start/<int:user_id>")
+    @login_required
+    def start_conversation(user_id):
+        user = db.session.get(User, user_id)
+
+        if not user:
+            flash("User not found.", "error")
+            return redirect_back("messages")
+
+        if user.id == current_user.id:
+            flash("You cannot message yourself.", "error")
+            return redirect_back("messages")
+
+        conversation = private_conversation_with(user.id)
+        if not conversation:
+            conversation = Conversation(conversation_type="private")
+            db.session.add(conversation)
+            db.session.flush()
+            db.session.add_all(
+                [
+                    ConversationMember(conversation_id=conversation.id, user_id=current_user.id),
+                    ConversationMember(conversation_id=conversation.id, user_id=user.id),
+                ]
+            )
+            db.session.commit()
+
+        return redirect(url_for("conversation", conversation_id=conversation.id))
+
+    @app.route("/messages/<int:conversation_id>", methods=["GET", "POST"])
+    @login_required
+    def conversation(conversation_id):
+        conversation = db.session.get(Conversation, conversation_id)
+
+        if not conversation or not is_conversation_member(conversation):
+            flash("Conversation not found.", "error")
+            return redirect(url_for("messages"))
+
+        if request.method == "POST":
+            content = request.form.get("content", "").strip()
+
+            if not content:
+                flash("Message content is required.", "error")
+                return redirect(url_for("conversation", conversation_id=conversation.id))
+
+            if len(content) > MAX_MESSAGE_LENGTH:
+                flash("Message content must be 1000 characters or fewer.", "error")
+                return redirect(url_for("conversation", conversation_id=conversation.id))
+
+            message = Message(conversation_id=conversation.id, sender_id=current_user.id, content=content)
+            db.session.add(message)
+
+            for member in conversation.members:
+                if member.user_id != current_user.id:
+                    create_notification(member.user_id, "message")
+
+            db.session.commit()
+            flash("Message sent.", "success")
+            return redirect(url_for("conversation", conversation_id=conversation.id))
+
+        other_member = (
+            ConversationMember.query.filter(ConversationMember.conversation_id == conversation.id)
+            .filter(ConversationMember.user_id != current_user.id)
+            .first()
+        )
+        if other_member:
+            Notification.query.filter_by(
+                recipient_id=current_user.id,
+                actor_id=other_member.user_id,
+                notification_type="message",
+                is_read=False,
+            ).update({"is_read": True})
+            db.session.commit()
+
+        return placeholder(
+            "私信",
+            conversations=user_conversations(),
+            active_conversation=conversation,
+            messages=conversation_messages(conversation),
+            users=messageable_users(limit=10),
+        )
 
     @app.get("/notifications")
     @login_required
     def notifications():
         user_notifications = (
             Notification.query.filter_by(recipient_id=current_user.id)
+            .filter(Notification.notification_type != "message")
             .order_by(Notification.created_at.desc(), Notification.id.desc())
             .all()
         )
         unread_notification_ids = {notification.id for notification in user_notifications if not notification.is_read}
-        Notification.query.filter_by(recipient_id=current_user.id, is_read=False).update(
-            {"is_read": True},
-            synchronize_session=False,
+        (
+            Notification.query.filter_by(recipient_id=current_user.id, is_read=False)
+            .filter(Notification.notification_type != "message")
+            .update(
+                {"is_read": True},
+                synchronize_session=False,
+            )
         )
         db.session.commit()
         return placeholder("通知", notifications=user_notifications, unread_notification_ids=unread_notification_ids)

@@ -1690,3 +1690,87 @@ a:hover {
     background-color: var(--myownx-danger) !important;
     box-shadow: 0 0 8px rgba(244, 33, 46, 0.4);
 }
+
+/* ==================== Immersive Dual-Pane Chat Layouts ==================== */
+@media (min-width: 1200px) {
+    .sidebar-left.chat-mode {
+        width: 80px !important;
+        min-width: 80px !important;
+        padding: 0 8px !important;
+    }
+    .sidebar-left.chat-mode .d-xl-inline {
+        display: none !important;
+    }
+    .sidebar-left.chat-mode .menu-item i {
+        margin-right: 0 !important;
+    }
+    .sidebar-left.chat-mode .menu-item {
+        justify-content: center !important;
+        width: 50px !important;
+        height: 50px !important;
+        padding: 0 !important;
+    }
+    .sidebar-left.chat-mode .sidebar-post-btn {
+        display: none !important;
+    }
+    .sidebar-left.chat-mode .account-info,
+    .sidebar-left.chat-mode .account-more {
+        display: none !important;
+    }
+    .sidebar-left.chat-mode .sidebar-account {
+        justify-content: center !important;
+        width: auto !important;
+        padding: 12px 0 !important;
+    }
+    .sidebar-left.chat-mode .brand-logo {
+        display: none !important;
+    }
+    .sidebar-left.chat-mode .sidebar-brand::before {
+        content: "X";
+        font-family: 'Outfit', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--myownx-theme);
+    }
+}
+
+.main-content.chat-mode {
+    max-width: none !important;
+    border-right: none !important;
+    padding-bottom: 0 !important;
+}
+
+.app-container:has(.main-content.chat-mode) {
+    max-width: 1200px !important;
+}
+
+@media (min-width: 768px) {
+    .messages-list-pane {
+        width: 380px !important;
+        min-width: 380px !important;
+        flex-shrink: 0;
+    }
+}
+
+.chat-item-btn {
+    cursor: pointer;
+    color: inherit;
+    transition: background-color 0.2s;
+}
+
+.chat-item-btn:hover {
+    background-color: var(--myownx-light-hover) !important;
+}
+
+.chat-item-btn .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* ==================== Unread Conversation Item Highlights ==================== */
+.chat-item.unread-chat {
+    background-color: rgba(29, 155, 240, 0.07) !important;
+    border-left: 3px solid var(--myownx-theme) !important;
+}

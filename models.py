@@ -33,6 +33,12 @@ class User(UserMixin, db.Model):
     )
     likes = db.relationship("Like", back_populates="user", cascade="all, delete-orphan")
     comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    conversation_memberships = db.relationship(
+        "ConversationMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    sent_messages = db.relationship("Message", back_populates="sender", cascade="all, delete-orphan")
 
 
 class Post(db.Model):
@@ -110,3 +116,42 @@ class Notification(db.Model):
     recipient = db.relationship("User", foreign_keys=[recipient_id])
     actor = db.relationship("User", foreign_keys=[actor_id])
     post = db.relationship("Post")
+
+
+class Conversation(db.Model):
+    __tablename__ = "conversations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_type = db.Column(db.String(20), nullable=False, default="private")
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    members = db.relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")
+    messages = db.relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class ConversationMember(db.Model):
+    __tablename__ = "conversation_members"
+    __table_args__ = (
+        db.UniqueConstraint("conversation_id", "user_id", name="uq_conversation_user"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey("conversations.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    conversation = db.relationship("Conversation", back_populates="members")
+    user = db.relationship("User", back_populates="conversation_memberships")
+
+
+class Message(db.Model):
+    __tablename__ = "messages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey("conversations.id"), nullable=False, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    conversation = db.relationship("Conversation", back_populates="messages")
+    sender = db.relationship("User", back_populates="sent_messages")

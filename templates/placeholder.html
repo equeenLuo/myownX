@@ -267,78 +267,101 @@
         </div>
 
     <!-- 4. Messages / Chat Page -->
-    {% elif request.path == '/messages' %}
+    {% elif request.endpoint in ['messages', 'conversation'] %}
         <div class="messages-layout">
             <!-- Left Conversational Lists -->
             <div class="messages-list-pane">
-                <div class="chat-item active">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="chat-avatar" alt="Avatar">
-                    <div class="chat-detail">
-                        <div class="chat-header">
-                            <span class="chat-name">Li Lei</span>
-                            <span class="chat-time">5:12 PM</span>
-                        </div>
-                        <div class="chat-message-preview">Wanna go running on the track tonight?</div>
+                {% if conversations %}
+                    {% for conversation_item in conversations %}
+                        {% set other_user = conversation_other_user(conversation_item) %}
+                        {% set last_message = conversation_last_message(conversation_item) %}
+                        {% set is_unread_chat = other_user and unread_sender_ids is defined and other_user.id in unread_sender_ids %}
+                        <a href="{{ url_for('conversation', conversation_id=conversation_item.id) }}" class="chat-item text-decoration-none {% if is_unread_chat %}unread-chat{% endif %} {% if active_conversation is defined and active_conversation and active_conversation.id == conversation_item.id %}active{% endif %}">
+                            <img src="{{ user_avatar_url(other_user) }}" class="chat-avatar" alt="Avatar">
+                            <div class="chat-detail">
+                                <div class="chat-header">
+                                    <span class="chat-name">{% if other_user %}{{ other_user.display_name or other_user.username }}{% else %}Unknown user{% endif %}</span>
+                                    <span class="chat-time">
+                                        {% if last_message and last_message.created_at and last_message.created_at.strftime %}
+                                            {{ last_message.created_at.strftime('%H:%M') }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="chat-message-preview">
+                                    {% if last_message %}
+                                        {% if last_message.sender_id == current_user.id %}You: {% endif %}{{ last_message.content|truncate(80) }}
+                                    {% else %}
+                                        No messages yet.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="p-4 text-center text-muted border-bottom">
+                        No conversations yet.
                     </div>
-                </div>
+                {% endif %}
 
-                <div class="chat-item" onclick="alert('TASK-0 only provides static chat simulation.')">
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="chat-avatar" alt="Avatar">
-                    <div class="chat-detail">
-                        <div class="chat-header">
-                            <span class="chat-name">Han Meimei</span>
-                            <span class="chat-time">Yesterday</span>
-                        </div>
-                        <div class="chat-message-preview">This responsive layout works perfectly on mobile!</div>
-                    </div>
-                </div>
-
-                <div class="chat-item" onclick="alert('TASK-0 only provides static chat simulation.')">
-                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" class="chat-avatar" alt="Avatar">
-                    <div class="chat-detail">
-                        <div class="chat-header">
-                            <span class="chat-name">Juejin Assistant</span>
-                            <span class="chat-time">3d ago</span>
-                        </div>
-                        <div class="chat-message-preview">System: Congratulations on registering with myownX!</div>
-                    </div>
+                <div class="p-3 border-top">
+                    <h6 class="fw-bold mb-3">Start a conversation</h6>
+                    {% if users %}
+                        {% for message_user in users %}
+                            <form action="{{ url_for('start_conversation', user_id=message_user.id) }}" method="POST" class="w-100 m-0">
+                                <button type="submit" class="w-100 text-start border-0 bg-transparent p-2 rounded chat-item-btn d-flex align-items-center gap-2 mb-2" style="transition: background-color 0.2s;">
+                                    <img src="{{ user_avatar_url(message_user) }}" class="chat-avatar" alt="Avatar" style="width: 40px; height: 40px;">
+                                    <div class="chat-detail">
+                                        <div class="chat-name text-white" style="font-size: 0.95rem;">{{ message_user.display_name or message_user.username }}</div>
+                                        <div class="chat-message-preview">@{{ message_user.username }}</div>
+                                    </div>
+                                </button>
+                            </form>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted small">No other users yet.</div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Right Messages Pane (Hidden on Mobile) -->
-            <div class="messages-chat-pane d-none d-md-flex">
-                <div class="chat-pane-header">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" class="chat-avatar" style="width:36px; height:36px;" alt="Avatar">
-                    <div>
-                        <div class="fw-bold">Li Lei</div>
-                        <div class="text-muted small">@lilei</div>
+            <!-- Right Messages Pane -->
+            <div class="messages-chat-pane {% if active_conversation is defined and active_conversation %}d-flex{% else %}d-none d-md-flex{% endif %}">
+                {% if active_conversation is defined and active_conversation %}
+                    {% set active_other_user = conversation_other_user(active_conversation) %}
+                    <div class="chat-pane-header">
+                        <img src="{{ user_avatar_url(active_other_user) }}" class="chat-avatar" style="width:36px; height:36px;" alt="Avatar">
+                        <div>
+                            <div class="fw-bold">{% if active_other_user %}{{ active_other_user.display_name or active_other_user.username }}{% else %}Unknown user{% endif %}</div>
+                            <div class="text-muted small">@{{ active_other_user.username if active_other_user else 'unknown' }}</div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="chat-body">
-                    <div class="message-bubble incoming">
-                        Hi, you there? What project are you working on lately?
+                    <div class="chat-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="message-bubble {% if message.sender_id == current_user.id %}outgoing{% else %}incoming{% endif %}">
+                                    {{ message.content }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-4 text-center text-muted">
+                                No messages in this conversation yet.
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="message-bubble outgoing">
-                        Working on the frontend UI layout for myownX, coding HTML and CSS.
-                    </div>
-                    <div class="message-bubble incoming">
-                        Wow, sounds cool! Is it built responsively with Bootstrap?
-                    </div>
-                    <div class="message-bubble outgoing">
-                        Yep, Bootstrap 5 + custom CSS styling, it looks absolutely stunning now!
-                    </div>
-                    <div class="message-bubble incoming">
-                        Awesome, wanna go running on the track tonight?
-                    </div>
-                </div>
 
-                <div class="chat-footer">
-                    <div class="chat-input-wrapper">
-                        <input type="text" class="chat-input" placeholder="Start a new message...">
-                        <button class="btn-chat-send"><i class="bi bi-send-fill"></i></button>
+                    <div class="chat-footer">
+                        <form action="{{ url_for('conversation', conversation_id=active_conversation.id) }}" method="POST" class="chat-input-wrapper">
+                            <input type="text" name="content" class="chat-input" placeholder="Start a new message..." maxlength="1000" required>
+                            <button class="btn-chat-send" type="submit"><i class="bi bi-send-fill"></i></button>
+                        </form>
                     </div>
-                </div>
+                {% else %}
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center text-muted p-4">
+                        <i class="bi bi-envelope" style="font-size: 3rem;"></i>
+                        <h5 class="fw-bold mt-3">Select a conversation</h5>
+                        <p class="small mb-0">Choose a conversation from the list or start a new one.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
 

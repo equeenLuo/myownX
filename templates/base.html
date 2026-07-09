@@ -17,7 +17,8 @@
 </head>
 <body>
 
-    <!-- Determine if auth page for screen layout -->
+    <!-- Determine if auth page or chat page for screen layout -->
+    {% set is_chat_page = request.endpoint in ['messages', 'conversation'] %}
     {% if request.path in ['/login', '/register'] %}
         <div class="container d-flex align-items-center justify-content-center min-vh-100">
             {% block auth_content %}{% endblock %}
@@ -98,13 +99,18 @@
             <a href="{{ url_for('notifications') }}" class="mobile-nav-link position-relative {% if request.path == '/notifications' %}active{% endif %}">
                 <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
                 {% if unread_notifications_count > 0 %}
-                    <span class="position-absolute top-0 start-50 translate-middle-y badge rounded-circle bg-primary" style="font-size: 0.62rem; padding: 2px 5px; transform: translate(5px, 8px) !important;">
+                    <span class="position-absolute top-0 start-50 translate-middle-y badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; transform: translate(5px, 8px) !important;">
                         {{ unread_notifications_count }}
                     </span>
                 {% endif %}
             </a>
-            <a href="{{ url_for('messages') }}" class="mobile-nav-link {% if request.path == '/messages' %}active{% endif %}">
-                <i class="bi {% if request.path == '/messages' %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+            <a href="{{ url_for('messages') }}" class="mobile-nav-link position-relative {% if request.endpoint in ['messages', 'conversation'] %}active{% endif %}">
+                <i class="bi {% if request.endpoint in ['messages', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+                {% if unread_messages_count > 0 %}
+                    <span class="position-absolute top-0 start-50 translate-middle-y badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; transform: translate(5px, 8px) !important;">
+                        {{ unread_messages_count }}
+                    </span>
+                {% endif %}
             </a>
         </nav>
 
@@ -117,7 +123,7 @@
         <div class="app-container">
 
             <!-- PC Left Sidebar Navigation -->
-            <aside class="sidebar-left">
+            <aside class="sidebar-left {% if is_chat_page %}chat-mode{% endif %}">
                 <div>
                     <a href="{{ url_for('index') }}" class="sidebar-brand text-decoration-none">
                         <span class="brand-logo">myownX</span>
@@ -141,7 +147,7 @@
                                 <span class="position-relative d-inline-flex">
                                     <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
                                     {% if unread_notifications_count > 0 %}
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-primary" style="font-size: 0.62rem; padding: 2px 5px; margin-left: -2px; margin-top: 2px;">
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; margin-left: -2px; margin-top: 2px;">
                                             {{ unread_notifications_count }}
                                         </span>
                                     {% endif %}
@@ -150,8 +156,15 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('messages') }}" class="menu-item {% if request.path == '/messages' %}active{% endif %}">
-                                <i class="bi {% if request.path == '/messages' %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+                            <a href="{{ url_for('messages') }}" class="menu-item {% if request.endpoint in ['messages', 'conversation'] %}active{% endif %}">
+                                <span class="position-relative d-inline-flex">
+                                    <i class="bi {% if request.endpoint in ['messages', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; margin-left: -2px; margin-top: 2px;">
+                                            {{ unread_messages_count }}
+                                        </span>
+                                    {% endif %}
+                                </span>
                                 <span class="d-none d-xl-inline">Chat</span>
                             </a>
                         </li>
@@ -212,7 +225,7 @@
             </aside>
 
             <!-- PC Middle Content Flow -->
-            <main class="main-content">
+            <main class="main-content {% if is_chat_page %}chat-mode{% endif %}">
                 <!-- Sticky Header (Glassmorphism) -->
                 <div class="main-header d-none d-md-flex">
                     <h1 class="main-header-title">{{ page_title }}</h1>
@@ -223,7 +236,7 @@
             </main>
 
             <!-- PC Right Widget Side Column -->
-            <aside class="widgets-right">
+            <aside class="widgets-right {% if is_chat_page %}d-none{% endif %}">
                 <!-- Search bar -->
                 <div class="search-container">
                     <div class="search-wrapper">
