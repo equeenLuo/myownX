@@ -3845,6 +3845,7 @@ body {
     justify-content: center;
     border-bottom: 1px solid var(--myownx-border);
     background: rgba(255, 255, 255, 0.64);
+    box-shadow: 0 2px 24px rgba(15, 20, 25, 0.12);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
@@ -3858,25 +3859,29 @@ body {
 
 @media (min-width: 768px) {
     body {
-        padding-top: var(--header-height);
+        padding-top: calc(var(--header-height) + 12px);
     }
 
     .app-container {
-        min-height: calc(100vh - var(--header-height));
+        min-height: calc(100vh - var(--header-height) - 12px);
     }
 
     .sidebar-left,
     .widgets-right {
-        top: var(--header-height);
-        height: calc(100vh - var(--header-height));
+        top: calc(var(--header-height) + 12px);
+        height: calc(100vh - var(--header-height) - 12px);
     }
 
     .main-header {
         display: none !important;
     }
 
+    .timeline-tabs {
+        top: var(--header-height);
+    }
+
     .messages-layout {
-        height: calc(100vh - var(--header-height));
+        height: calc(100vh - var(--header-height) - 12px);
     }
 
     /* Keep the desktop shell stationary when opening Chat. */
@@ -3899,8 +3904,11 @@ body {
 
     .sidebar-left.chat-mode .menu-item {
         width: 52px !important;
-        height: auto !important;
-        padding: 12px !important;
+        min-height: 52px !important;
+        height: 52px !important;
+        margin-left: 0 !important;
+        padding: 10px 14px !important;
+        box-sizing: border-box;
         justify-content: flex-start !important;
     }
 
@@ -3910,14 +3918,15 @@ body {
 
     .sidebar-left.chat-mode .sidebar-account {
         width: auto !important;
-        padding: 12px !important;
+        padding: 10px 8px !important;
         justify-content: flex-start !important;
     }
 
     .main-content.chat-mode {
-        width: calc(100% - var(--sidebar-collapsed-width)) !important;
+        width: calc(100% - var(--sidebar-collapsed-width) - 12px) !important;
         max-width: none !important;
         flex: 1 1 auto !important;
+        margin-left: 12px;
     }
 
     .messages-list-pane {
