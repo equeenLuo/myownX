@@ -349,7 +349,7 @@
 
     <!-- 4. Messages / Chat Page -->
     {% elif request.endpoint in ['messages', 'conversation'] %}
-        <div class="messages-layout">
+        <div class="messages-layout {% if active_conversation is defined and active_conversation %}has-active-conversation{% endif %}">
             <!-- Left Conversational Lists -->
             <div class="messages-list-pane">
                 <div class="messages-list-header">
@@ -441,6 +441,7 @@
                     {% set active_other_user = conversation_other_user(active_conversation) %}
                     {% set active_is_group = active_conversation.conversation_type == 'group' %}
                     <div class="chat-pane-header">
+                        <a href="{{ url_for('messages') }}" class="chat-back-link d-md-none" aria-label="Back to conversations"><i class="bi bi-arrow-left"></i></a>
                         {% if active_is_group %}
                             <span class="chat-avatar group-chat-avatar" style="width:36px; height:36px;"><i class="bi bi-people-fill"></i></span>
                         {% else %}

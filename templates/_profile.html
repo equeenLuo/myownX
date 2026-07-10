@@ -3,7 +3,7 @@
 {% set is_own_profile = current_user.is_authenticated and profile_user and profile_user.id == current_user.id %}
 {% set is_following_user = current_user.is_authenticated and profile_user and is_following(profile_user) %}
 {% set is_profile_private_shield = profile_user and profile_user.settings and profile_user.settings.is_private and not is_own_profile and not is_following_user %}
-<div class="d-flex align-items-center px-3 py-2 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
+<div class="profile-page-header d-flex align-items-center px-3 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
     <a href="javascript:history.back()" class="text-dark me-4"><i class="bi bi-arrow-left fs-5"></i></a>
     <div>
         <h2 class="fw-bold mb-0 d-flex align-items-center" style="font-size: 1.25rem;">

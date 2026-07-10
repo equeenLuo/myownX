@@ -31,7 +31,7 @@
         {% for post in posts %}
             {% set display_post = post.repost_source if post.repost_source else post %}
             <article class="post-card" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
-                <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
+                <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="post-card-avatar-link text-decoration-none">
                     <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
                 </a>
                 <div class="post-card-body">
@@ -100,7 +100,7 @@
                                 <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(display_post) }}</span>
                             </button>
                         </form>
-                        <button class="post-action action-share" type="button"><i class="bi bi-share"></i></button>
+                        <button class="post-action action-share" type="button" aria-label="Share"><i class="bi bi-share"></i></button>
                     </div>
                     <div class="post-comments collapse" id="comments-{{ post.id }}">
                         <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form">
