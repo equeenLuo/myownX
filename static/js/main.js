@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 只有当点击图片且它属于 post-card-media 组件时触发
             if (e.target.tagName === 'IMG' && e.target.closest('.post-card-media')) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
                 window.openLightbox(e.target.src);
             }
         });

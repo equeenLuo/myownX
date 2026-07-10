@@ -202,7 +202,7 @@
                                 {% if media_urls and display_post.media_type == 'image' %}
                                     <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }} mt-2">
                                         {% for media_url in media_urls[:4] %}
-                                            <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid" style="cursor: pointer;" onclick="viewFullImage('{{ media_url }}')">
+                                            <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid" style="cursor: pointer;">
                                         {% endfor %}
                                     </div>
                                 {% endif %}

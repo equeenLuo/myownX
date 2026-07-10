@@ -2297,28 +2297,43 @@ body {
 }
 
 .post-card-footer {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    width: calc(100% + 8px);
+    position: relative;
+    display: block;
+    width: 100%;
     max-width: none;
     min-height: 34px;
-    margin: 4px 0 -4px -8px;
+    height: 34px;
+    margin: 4px 0 -4px;
     align-items: center;
 }
 
-.post-card-footer > .post-action {
-    justify-self: start;
+.post-card-footer > .post-action:first-child {
+    position: absolute;
+    top: 0;
+    left: -8px;
 }
 
 .post-card-footer > .post-action:last-child {
-    justify-self: end;
-    transform: translateX(26px);
+    position: absolute;
+    top: 0;
+    right: -8px;
 }
 
 .post-card-footer .post-action-form {
-    display: flex;
-    width: 100%;
-    justify-content: center;
+    position: absolute;
+    top: 0;
+    display: block;
+    width: auto;
+    margin: 0;
+    transform: translateX(-50%);
+}
+
+.post-card-footer > .post-action-form:nth-child(2) {
+    left: calc(33.333% + 3px);
+}
+
+.post-card-footer > .post-action-form:nth-child(3) {
+    left: calc(66.667% - 3px);
 }
 
 .post-creator-submit-tools {
@@ -3721,9 +3736,20 @@ body {
 }
 
 .reply-modal-source {
+    position: relative;
     display: flex;
     gap: 12px;
-    padding: 4px 4px 12px;
+    padding: 4px 4px 8px;
+}
+
+.reply-modal-source::after {
+    position: absolute;
+    top: 40px;
+    bottom: -36px;
+    left: 24px;
+    width: 2px;
+    background: #cfd9de;
+    content: "";
 }
 
 .reply-modal-source-avatar {
@@ -3736,8 +3762,6 @@ body {
 .reply-modal-source-body {
     min-width: 0;
     flex: 1;
-    padding-left: 14px;
-    border-left: 2px solid #cfd9de;
 }
 
 .reply-modal-source-meta {
@@ -3766,6 +3790,13 @@ body {
     -webkit-line-clamp: 3;
 }
 
+.reply-modal-replying-to {
+    min-height: 24px;
+    margin: 0 0 4px 52px;
+    font-size: 15px;
+    line-height: 20px;
+}
+
 .reply-modal-form {
     display: flex;
     gap: 12px;
@@ -3775,7 +3806,7 @@ body {
 .reply-modal-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     min-height: 44px;
-    border-top: 1px solid var(--myownx-border);
+    border-top: 0;
 }

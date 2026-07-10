@@ -346,15 +346,14 @@
                                 <strong id="reply-modal-source-name"></strong><span id="reply-modal-source-handle"></span>
                             </div>
                             <p id="reply-modal-source-content" class="reply-modal-source-content"></p>
-                            <div class="replying-to mb-3">Replying to <span id="reply-modal-target-handle"></span></div>
                         </div>
                     </div>
+                    <div class="reply-modal-replying-to replying-to">Replying to <span id="reply-modal-target-handle"></span></div>
                     <form id="reply-modal-form" method="POST" class="reply-modal-form">
                         <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Your avatar">
                         <div class="flex-grow-1">
                             <textarea id="reply-modal-textarea" name="content" class="post-creator-textarea" rows="4" maxlength="280" placeholder="Post your reply" required></textarea>
                             <div class="reply-modal-toolbar">
-                                <span class="text-muted small">Everyone can reply</span>
                                 <button type="submit" class="btn-post-submit" id="reply-modal-submit" disabled>Reply</button>
                             </div>
                         </div>
@@ -388,7 +387,6 @@
                                     <label class="post-creator-action-btn" title="Media" for="modal-post-image" aria-label="Add image" style="cursor: pointer;"><i class="bi bi-image"></i></label>
                                     <input class="d-none" id="modal-post-image" name="images" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" multiple>
                                     <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
-                                    <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                                 </div>
                                 <button class="btn-post-submit" id="modal-post-submit" type="submit">Post</button>
                             </div>
