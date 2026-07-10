@@ -83,21 +83,21 @@
         </div>
 
         <!-- Interactive Icons Actions -->
-        <div class="d-flex justify-content-around py-3 border-bottom text-muted">
-            <button class="post-action border-0 bg-transparent text-muted fs-5" type="button" onclick="document.getElementById('reply-textarea').focus();" aria-label="Reply">
+        <div class="d-flex justify-content-around py-2 border-bottom text-muted">
+            <button class="post-action action-comment border-0 bg-transparent text-muted fs-5" type="button" onclick="document.getElementById('reply-textarea').focus();" aria-label="Reply">
                 <i class="bi bi-chat"></i>
             </button>
             <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form m-0">
-                <button class="post-action border-0 bg-transparent {% if has_reposted(display_post) %}text-success{% else %}text-muted{% endif %} fs-5" type="submit" aria-label="Repost">
+                <button class="post-action action-repost border-0 bg-transparent {% if has_reposted(display_post) %}reposted text-success{% else %}text-muted{% endif %} fs-5" type="submit" aria-label="Repost">
                     <i class="bi bi-arrow-repeat"></i>
                 </button>
             </form>
             <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form m-0">
-                <button class="post-action border-0 bg-transparent {% if liked %}text-danger{% else %}text-muted{% endif %} fs-5" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
+                <button class="post-action action-like border-0 bg-transparent {% if liked %}liked text-danger{% else %}text-muted{% endif %} fs-5" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
                     <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i>
                 </button>
             </form>
-            <button class="post-action border-0 bg-transparent text-muted fs-5" type="button" onclick="navigator.clipboard.writeText(window.location.href); alert('Post link copied to clipboard!');" aria-label="Share">
+            <button class="post-action action-share border-0 bg-transparent text-muted fs-5" type="button" onclick="navigator.clipboard.writeText(window.location.href); alert('Post link copied to clipboard!');" aria-label="Share">
                 <i class="bi bi-share"></i>
             </button>
         </div>
@@ -124,9 +124,9 @@
     <div class="post-replies-section mt-3">
         <h4 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--myownx-text);">Replies</h4>
         {% if comments %}
-            <div class="post-comment-list d-flex flex-column gap-3">
+            <div class="post-comment-list d-flex flex-column">
                 {% for comment in comments %}
-                    <div class="post-comment-item p-3 border rounded-4 d-flex gap-3 align-items-start bg-light bg-opacity-25" style="transition: background-color 0.2s;">
+                    <div class="post-comment-item py-3 px-1 border-bottom d-flex gap-3 align-items-start" style="transition: background-color 0.2s; cursor: pointer;">
                         <a href="{{ url_for('user_profile', user_id=comment.user.id) }}">
                             <img src="{{ user_avatar_url(comment.user) }}" class="post-comment-avatar" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
                         </a>

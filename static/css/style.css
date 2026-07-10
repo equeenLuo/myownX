@@ -7,7 +7,7 @@
     --myownx-text: #0f1419;
     --myownx-muted: #536471;
     --myownx-light: #f7f9f9;
-    --myownx-light-hover: #e7e7e8;
+    --myownx-light-hover: rgba(15, 20, 25, 0.08);
     --myownx-danger: #f91880;
     --myownx-danger-light: rgba(249, 24, 128, 0.1);
     --myownx-success: #00ba7c;
@@ -139,15 +139,14 @@ a:hover {
     border-radius: 9999px;
     width: 90%;
     text-align: center;
-    background-color: var(--myownx-theme);
+    background-color: rgb(15, 20, 25);
     color: #ffffff !important;
     border: none;
     transition: background-color 0.2s;
-    box-shadow: 0 4px 12px rgba(29, 155, 240, 0.15);
 }
 
 .sidebar-post-btn:hover {
-    background-color: var(--myownx-theme-hover);
+    background-color: rgb(39, 44, 48);
 }
 
 /* 账号快捷信息 */
@@ -398,8 +397,8 @@ a:hover {
 }
 
 .post-creator-avatar {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
 }
@@ -586,8 +585,8 @@ a:hover {
 }
 
 .post-card-avatar {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
@@ -812,6 +811,11 @@ a:hover {
     display: flex;
     gap: 8px;
     font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.post-comment-item:hover {
+    background-color: rgba(0, 0, 0, 0.015);
 }
 
 .post-comment-avatar {
@@ -847,8 +851,7 @@ a:hover {
 /* 个人资料页 (Profile Page) */
 .profile-cover {
     height: 200px;
-    background-color: var(--myownx-light-hover);
-    background-image: linear-gradient(135deg, #1d9bf0, #00ba7c);
+    background-color: rgb(207, 217, 222);
     position: relative;
 }
 
@@ -885,6 +888,21 @@ a:hover {
 
 .btn-profile-edit:hover {
     background-color: var(--myownx-light-hover);
+}
+
+.profile-avatar-container .btn-light {
+    background-color: rgb(15, 20, 25) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 8px 20px !important;
+    font-size: 0.95rem !important;
+    transition: background-color 0.2s !important;
+}
+
+.profile-avatar-container .btn-light:hover {
+    background-color: rgb(39, 44, 48) !important;
 }
 
 .profile-meta-info {
@@ -1773,4 +1791,46 @@ a:hover {
 .chat-item.unread-chat {
     background-color: rgba(29, 155, 240, 0.07) !important;
     border-left: 3px solid var(--myownx-theme) !important;
+}
+
+/* ==================== Settings Page Styling Overhaul ==================== */
+.settings-section form {
+    border: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+}
+
+.setting-row {
+    padding: 16px 0;
+    margin-bottom: 0 !important;
+    border-bottom: 1px solid var(--myownx-border);
+}
+
+.setting-row:first-of-type {
+    border-top: 1px solid var(--myownx-border);
+}
+
+.setting-row.border-top {
+    border-top: none !important; /* 清除行内内联边框干扰 */
+}
+
+/* 改进 Bootstrap Switch 外观，使之更符合 X */
+.form-check-input:checked {
+    background-color: var(--myownx-theme) !important;
+    border-color: var(--myownx-theme) !important;
+}
+
+.settings-section .btn-primary {
+    background-color: rgb(15, 20, 25) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    padding: 10px 24px !important;
+    font-size: 0.95rem !important;
+    transition: background-color 0.2s !important;
+}
+
+.settings-section .btn-primary:hover {
+    background-color: rgb(39, 44, 48) !important;
 }
