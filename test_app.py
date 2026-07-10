@@ -199,6 +199,75 @@ class MyownXFlowTests(unittest.TestCase):
             302,
         )
 
+    def test_group_chat_creates_members_and_tracks_group_notifications(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob")
+        carol_id = self.create_user("carol", "Carol")
+
+        self.login("alice")
+        response = self.client.post(
+            "/messages/group",
+            data={
+                "title": "Study group",
+                "participant_ids": [str(bob_id), str(carol_id)],
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        conversation_id = int(response.headers["Location"].rstrip("/").split("/")[-1])
+
+        with self.app.app_context():
+            conversation = db.session.get(Conversation, conversation_id)
+            self.assertEqual(conversation.conversation_type, "group")
+            self.assertEqual(conversation.title, "Study group")
+            self.assertEqual(ConversationMember.query.filter_by(conversation_id=conversation_id).count(), 3)
+
+        self.client.post(
+            f"/messages/{conversation_id}",
+            data={"content": "Bring your notes for the group chat."},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            notifications = Notification.query.filter_by(
+                conversation_id=conversation_id,
+                notification_type="message",
+            ).all()
+            self.assertEqual({notification.recipient_id for notification in notifications}, {bob_id, carol_id})
+
+        self.logout()
+        self.login("bob")
+        group_page = self.client.get(f"/messages/{conversation_id}")
+        self.assertIn(b"Study group", group_page.data)
+        self.assertIn(b"3 members", group_page.data)
+        with self.app.app_context():
+            self.assertEqual(
+                Notification.query.filter_by(
+                    recipient_id=bob_id,
+                    conversation_id=conversation_id,
+                    is_read=False,
+                ).count(),
+                0,
+            )
+            self.assertEqual(
+                Notification.query.filter_by(
+                    recipient_id=carol_id,
+                    conversation_id=conversation_id,
+                    is_read=False,
+                ).count(),
+                1,
+            )
+
+        self.logout()
+        self.login("alice")
+        duplicate_response = self.client.post(
+            "/messages/group",
+            data={"participant_ids": [str(bob_id), str(carol_id)]},
+            follow_redirects=False,
+        )
+        self.assertEqual(duplicate_response.headers["Location"], f"/messages/{conversation_id}")
+        with self.app.app_context():
+            self.assertEqual(Conversation.query.filter_by(conversation_type="group").count(), 1)
+
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
         self.assertEqual(summary["users"], 4)

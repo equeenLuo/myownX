@@ -58,13 +58,23 @@ def parse_post_media_paths(media_path):
 
 def ensure_schema_updates(app):
     inspector = inspect(db.engine)
-    if "posts" not in inspector.get_table_names():
-        return
+    table_names = set(inspector.get_table_names())
 
-    post_columns = {column["name"] for column in inspector.get_columns("posts")}
-    if "repost_from_id" not in post_columns:
-        with db.engine.begin() as connection:
-            connection.execute(text("ALTER TABLE posts ADD COLUMN repost_from_id INTEGER"))
+    with db.engine.begin() as connection:
+        if "posts" in table_names:
+            post_columns = {column["name"] for column in inspector.get_columns("posts")}
+            if "repost_from_id" not in post_columns:
+                connection.execute(text("ALTER TABLE posts ADD COLUMN repost_from_id INTEGER"))
+
+        if "conversations" in table_names:
+            conversation_columns = {column["name"] for column in inspector.get_columns("conversations")}
+            if "title" not in conversation_columns:
+                connection.execute(text("ALTER TABLE conversations ADD COLUMN title VARCHAR(80)"))
+
+        if "notifications" in table_names:
+            notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
+            if "conversation_id" not in notification_columns:
+                connection.execute(text("ALTER TABLE notifications ADD COLUMN conversation_id INTEGER"))
 
 
 def create_app(config_class=Config):
@@ -206,7 +216,7 @@ def create_app(config_class=Config):
         target_post = post.repost_source if post.repost_source else post
         return Post.query.filter_by(user_id=current_user.id, repost_from_id=target_post.id).first() is not None
 
-    def create_notification(recipient_id, notification_type, post_id=None):
+    def create_notification(recipient_id, notification_type, post_id=None, conversation_id=None):
         if not current_user or not current_user.is_authenticated or recipient_id == current_user.id:
             return
 
@@ -214,6 +224,7 @@ def create_app(config_class=Config):
             recipient_id=recipient_id,
             actor_id=current_user.id,
             post_id=post_id,
+            conversation_id=conversation_id,
             notification_type=notification_type,
         )
         db.session.add(notification)
@@ -251,6 +262,47 @@ def create_app(config_class=Config):
                 return member.user
         return None
 
+    def conversation_members(conversation):
+        if not conversation:
+            return []
+        return [member.user for member in conversation.members if member.user]
+
+    def conversation_title(conversation):
+        if not conversation:
+            return "Unknown conversation"
+        if conversation.conversation_type == "group":
+            if conversation.title:
+                return conversation.title
+            names = [
+                member.user.display_name or member.user.username
+                for member in conversation.members
+                if member.user and member.user_id != current_user.id
+            ]
+            return ", ".join(names[:3]) or "Group chat"
+
+        other_user = conversation_other_user(conversation)
+        return other_user.display_name or other_user.username if other_user else "Unknown user"
+
+    def conversation_has_unread_messages(conversation):
+        if not conversation or not current_user or not current_user.is_authenticated:
+            return False
+
+        query = Notification.query.filter_by(
+            recipient_id=current_user.id,
+            is_read=False,
+            notification_type="message",
+        )
+        if conversation.conversation_type == "group":
+            return query.filter_by(conversation_id=conversation.id).first() is not None
+
+        other_user = conversation_other_user(conversation)
+        if not other_user:
+            return False
+        return query.filter(
+            (Notification.conversation_id == conversation.id)
+            | ((Notification.conversation_id.is_(None)) & (Notification.actor_id == other_user.id))
+        ).first() is not None
+
     def user_conversations():
         if not current_user or not current_user.is_authenticated:
             return []
@@ -258,7 +310,6 @@ def create_app(config_class=Config):
         conversations = (
             Conversation.query.join(ConversationMember)
             .filter(ConversationMember.user_id == current_user.id)
-            .filter(Conversation.conversation_type == "private")
             .all()
         )
         return sorted(
@@ -293,6 +344,21 @@ def create_app(config_class=Config):
             .filter(ConversationMember.user_id == user_id)
             .first()
         )
+
+    def group_conversation_with(member_ids):
+        expected_member_ids = {current_user.id, *member_ids}
+        current_conversation_ids = db.session.query(ConversationMember.conversation_id).filter_by(
+            user_id=current_user.id
+        )
+        group_conversations = (
+            Conversation.query.filter(Conversation.conversation_type == "group")
+            .filter(Conversation.id.in_(current_conversation_ids))
+            .all()
+        )
+        for conversation in group_conversations:
+            if {member.user_id for member in conversation.members} == expected_member_ids:
+                return conversation
+        return None
 
     @app.context_processor
     def utility_processor():
@@ -345,6 +411,9 @@ def create_app(config_class=Config):
             "conversation_last_message": conversation_last_message,
             "conversation_messages": conversation_messages,
             "conversation_other_user": conversation_other_user,
+            "conversation_members": conversation_members,
+            "conversation_title": conversation_title,
+            "conversation_has_unread_messages": conversation_has_unread_messages,
         }
 
     @app.context_processor
@@ -622,6 +691,56 @@ def create_app(config_class=Config):
 
         return redirect(url_for("conversation", conversation_id=conversation.id))
 
+    @app.post("/messages/group")
+    @login_required
+    def create_group_conversation():
+        participant_ids = set()
+        for raw_user_id in request.form.getlist("participant_ids"):
+            try:
+                user_id = int(raw_user_id)
+            except (TypeError, ValueError):
+                continue
+            if user_id != current_user.id:
+                participant_ids.add(user_id)
+
+        if len(participant_ids) < 2:
+            flash("Select at least two people to create a group chat.", "error")
+            return redirect(url_for("messages"))
+
+        participants = User.query.filter(User.id.in_(participant_ids)).all()
+        if len(participants) != len(participant_ids):
+            flash("One or more selected users could not be found.", "error")
+            return redirect(url_for("messages"))
+
+        for participant in participants:
+            if not can_message_user(participant):
+                display_name = participant.display_name or participant.username
+                flash(f"{display_name} only accepts messages from people they follow.", "error")
+                return redirect(url_for("messages"))
+
+        title = request.form.get("title", "").strip()
+        if len(title) > 80:
+            flash("Group name must be 80 characters or fewer.", "error")
+            return redirect(url_for("messages"))
+
+        conversation = group_conversation_with(participant_ids)
+        if not conversation:
+            conversation = Conversation(conversation_type="group", title=title or None)
+            db.session.add(conversation)
+            db.session.flush()
+            db.session.add_all(
+                [
+                    ConversationMember(conversation_id=conversation.id, user_id=current_user.id),
+                    *[
+                        ConversationMember(conversation_id=conversation.id, user_id=participant.id)
+                        for participant in participants
+                    ],
+                ]
+            )
+            db.session.commit()
+
+        return redirect(url_for("conversation", conversation_id=conversation.id))
+
     @app.route("/messages/<int:conversation_id>", methods=["GET", "POST"])
     @login_required
     def conversation(conversation_id):
@@ -647,25 +766,32 @@ def create_app(config_class=Config):
 
             for member in conversation.members:
                 if member.user_id != current_user.id:
-                    create_notification(member.user_id, "message")
+                    create_notification(member.user_id, "message", conversation_id=conversation.id)
 
             db.session.commit()
             flash("Message sent.", "success")
             return redirect(url_for("conversation", conversation_id=conversation.id))
 
-        other_member = (
-            ConversationMember.query.filter(ConversationMember.conversation_id == conversation.id)
-            .filter(ConversationMember.user_id != current_user.id)
-            .first()
+        unread_messages = Notification.query.filter_by(
+            recipient_id=current_user.id,
+            notification_type="message",
+            is_read=False,
         )
-        if other_member:
-            Notification.query.filter_by(
-                recipient_id=current_user.id,
-                actor_id=other_member.user_id,
-                notification_type="message",
-                is_read=False,
-            ).update({"is_read": True})
+        if conversation.conversation_type == "group":
+            unread_messages.filter_by(conversation_id=conversation.id).update({"is_read": True})
             db.session.commit()
+        else:
+            other_member = (
+                ConversationMember.query.filter(ConversationMember.conversation_id == conversation.id)
+                .filter(ConversationMember.user_id != current_user.id)
+                .first()
+            )
+            if other_member:
+                unread_messages.filter(
+                    (Notification.conversation_id == conversation.id)
+                    | ((Notification.conversation_id.is_(None)) & (Notification.actor_id == other_member.user_id))
+                ).update({"is_read": True})
+                db.session.commit()
 
         return placeholder(
             "私信",

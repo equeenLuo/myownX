@@ -2556,3 +2556,127 @@ body {
         justify-content: flex-start !important;
     }
 }
+
+/* Group chat controls */
+.group-chat-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f5fd;
+    color: var(--myownx-theme);
+    font-size: 1.2rem;
+}
+
+.new-conversation-panel {
+    padding: 12px 16px 20px;
+    border-top: 1px solid var(--myownx-border);
+}
+
+.group-chat-builder {
+    margin-bottom: 18px;
+    border: 1px solid var(--myownx-border);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.group-chat-builder summary {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 42px;
+    padding: 0 12px;
+    color: var(--myownx-text);
+    cursor: pointer;
+    font-size: 0.92rem;
+    font-weight: 700;
+    list-style: none;
+}
+
+.group-chat-builder summary::-webkit-details-marker {
+    display: none;
+}
+
+.group-chat-builder summary::after {
+    margin-left: auto;
+    color: var(--myownx-muted);
+    content: "+";
+    font-size: 1.25rem;
+    font-weight: 400;
+}
+
+.group-chat-builder[open] summary {
+    border-bottom: 1px solid var(--myownx-border);
+}
+
+.group-chat-builder[open] summary::after {
+    content: "−";
+}
+
+.group-chat-builder form {
+    padding: 12px;
+}
+
+.group-member-picker {
+    display: grid;
+    max-height: 224px;
+    margin: 10px 0;
+    overflow-y: auto;
+    border-top: 1px solid var(--myownx-border);
+    border-bottom: 1px solid var(--myownx-border);
+}
+
+.group-member-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 6px 2px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.group-member-option + .group-member-option {
+    border-top: 1px solid var(--myownx-border);
+}
+
+.group-member-option input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--myownx-theme);
+}
+
+.group-member-option img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.btn-create-group {
+    width: 100%;
+    min-height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: #0f1419;
+    color: #ffffff;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.direct-conversation-title {
+    margin: 0 0 8px;
+    color: var(--myownx-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.new-conversation-panel .chat-name {
+    color: var(--myownx-text) !important;
+}
+
+@media (max-width: 768px) {
+    .new-conversation-panel {
+        padding-bottom: 12px;
+    }
+}

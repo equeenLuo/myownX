@@ -110,6 +110,7 @@ class Notification(db.Model):
     recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True, index=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey("conversations.id"), nullable=True, index=True)
     notification_type = db.Column(db.String(20), nullable=False)
     is_read = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
@@ -117,6 +118,7 @@ class Notification(db.Model):
     recipient = db.relationship("User", foreign_keys=[recipient_id])
     actor = db.relationship("User", foreign_keys=[actor_id])
     post = db.relationship("Post")
+    conversation = db.relationship("Conversation")
 
 
 class Conversation(db.Model):
@@ -124,6 +126,7 @@ class Conversation(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     conversation_type = db.Column(db.String(20), nullable=False, default="private")
+    title = db.Column(db.String(80), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     members = db.relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")

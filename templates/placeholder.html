@@ -364,12 +364,17 @@
                     {% for conversation_item in conversations %}
                         {% set other_user = conversation_other_user(conversation_item) %}
                         {% set last_message = conversation_last_message(conversation_item) %}
-                        {% set is_unread_chat = other_user and unread_sender_ids is defined and other_user.id in unread_sender_ids %}
+                        {% set is_group = conversation_item.conversation_type == 'group' %}
+                        {% set is_unread_chat = conversation_has_unread_messages(conversation_item) %}
                         <a href="{{ url_for('conversation', conversation_id=conversation_item.id) }}" class="chat-item text-decoration-none {% if is_unread_chat %}unread-chat{% endif %} {% if active_conversation is defined and active_conversation and active_conversation.id == conversation_item.id %}active{% endif %}">
-                            <img src="{{ user_avatar_url(other_user) }}" class="chat-avatar" alt="Avatar">
+                            {% if is_group %}
+                                <span class="chat-avatar group-chat-avatar"><i class="bi bi-people-fill"></i></span>
+                            {% else %}
+                                <img src="{{ user_avatar_url(other_user) }}" class="chat-avatar" alt="Avatar">
+                            {% endif %}
                             <div class="chat-detail">
                                 <div class="chat-header">
-                                    <span class="chat-name">{% if other_user %}{{ other_user.display_name or other_user.username }}{% else %}Unknown user{% endif %}</span>
+                                    <span class="chat-name">{{ conversation_title(conversation_item) }}</span>
                                     <span class="chat-time">
                                         {% if last_message and last_message.created_at and last_message.created_at.strftime %}
                                             {{ last_message.created_at.strftime('%H:%M') }}
@@ -392,9 +397,25 @@
                     </div>
                 {% endif %}
 
-                <div class="p-3 border-top">
-                    <h6 class="fw-bold mb-3">Start a conversation</h6>
+                <div class="new-conversation-panel">
                     {% if users %}
+                        <details class="group-chat-builder">
+                            <summary><i class="bi bi-people"></i> New group</summary>
+                            <form action="{{ url_for('create_group_conversation') }}" method="POST">
+                                <input type="text" name="title" class="form-control form-control-sm" placeholder="Group name (optional)" maxlength="80">
+                                <div class="group-member-picker">
+                                    {% for message_user in users %}
+                                        <label class="group-member-option">
+                                            <input type="checkbox" name="participant_ids" value="{{ message_user.id }}">
+                                            <img src="{{ user_avatar_url(message_user) }}" alt="Avatar">
+                                            <span>{{ message_user.display_name or message_user.username }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                                <button type="submit" class="btn-create-group">Create group</button>
+                            </form>
+                        </details>
+                        <h6 class="direct-conversation-title">Start a direct conversation</h6>
                         {% for message_user in users %}
                             <form action="{{ url_for('start_conversation', user_id=message_user.id) }}" method="POST" class="w-100 m-0">
                                 <button type="submit" class="w-100 text-start border-0 bg-transparent p-2 rounded chat-item-btn d-flex align-items-center gap-2 mb-2" style="transition: background-color 0.2s;">
@@ -416,11 +437,22 @@
             <div class="messages-chat-pane {% if active_conversation is defined and active_conversation %}d-flex{% else %}d-none d-md-flex{% endif %}">
                 {% if active_conversation is defined and active_conversation %}
                     {% set active_other_user = conversation_other_user(active_conversation) %}
+                    {% set active_is_group = active_conversation.conversation_type == 'group' %}
                     <div class="chat-pane-header">
-                        <img src="{{ user_avatar_url(active_other_user) }}" class="chat-avatar" style="width:36px; height:36px;" alt="Avatar">
+                        {% if active_is_group %}
+                            <span class="chat-avatar group-chat-avatar" style="width:36px; height:36px;"><i class="bi bi-people-fill"></i></span>
+                        {% else %}
+                            <img src="{{ user_avatar_url(active_other_user) }}" class="chat-avatar" style="width:36px; height:36px;" alt="Avatar">
+                        {% endif %}
                         <div>
-                            <div class="fw-bold">{% if active_other_user %}{{ active_other_user.display_name or active_other_user.username }}{% else %}Unknown user{% endif %}</div>
-                            <div class="text-muted small">@{{ active_other_user.username if active_other_user else 'unknown' }}</div>
+                            <div class="fw-bold">{{ conversation_title(active_conversation) }}</div>
+                            <div class="text-muted small">
+                                {% if active_is_group %}
+                                    {{ conversation_members(active_conversation)|length }} members
+                                {% else %}
+                                    @{{ active_other_user.username if active_other_user else 'unknown' }}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
 
