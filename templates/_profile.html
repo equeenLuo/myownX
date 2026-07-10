@@ -1,12 +1,18 @@
 <!-- Profile Top Sticky Header -->
 {% set profile_user = user if (user is defined and user) else current_user %}
+{% set is_own_profile = current_user.is_authenticated and profile_user and profile_user.id == current_user.id %}
+{% set is_following_user = current_user.is_authenticated and profile_user and is_following(profile_user) %}
+{% set is_profile_private_shield = profile_user and profile_user.settings and profile_user.settings.is_private and not is_own_profile and not is_following_user %}
 <div class="d-flex align-items-center px-3 py-2 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
     <a href="javascript:history.back()" class="text-dark me-4"><i class="bi bi-arrow-left fs-5"></i></a>
     <div>
-        <h2 class="fw-bold mb-0" style="font-size: 1.25rem;">
+        <h2 class="fw-bold mb-0 d-flex align-items-center" style="font-size: 1.25rem;">
             {{ profile_user.display_name if profile_user else 'Demo User' }}
+            {% if profile_user and profile_user.settings and profile_user.settings.is_private %}
+                <i class="bi bi-lock-fill text-muted fs-6 ms-1" style="vertical-align: middle;"></i>
+            {% endif %}
         </h2>
-        <span class="text-muted small">{{ posts|length if posts else 0 }} Posts</span>
+        <span class="text-muted small">{% if is_profile_private_shield %}<i class="bi bi-lock-fill small text-muted"></i> Private{% else %}{{ posts|length if posts else 0 }} Posts{% endif %}</span>
     </div>
 </div>
 
@@ -36,8 +42,11 @@
 
 <!-- User Details Bio Info -->
 <div class="profile-meta-info">
-    <div class="profile-realname">
+    <div class="profile-realname d-flex align-items-center">
         {{ profile_user.display_name if profile_user else 'Demo User' }}
+        {% if profile_user and profile_user.settings and profile_user.settings.is_private %}
+            <i class="bi bi-lock-fill text-muted fs-6 ms-1" style="vertical-align: middle;"></i>
+        {% endif %}
     </div>
     <div class="profile-username">
         @{{ profile_user.username if profile_user else 'guest' }}
@@ -56,113 +65,123 @@
         <span>Joined {% if profile_user and profile_user.created_at and profile_user.created_at.strftime %}{{ profile_user.created_at.strftime('%B %Y') }}{% else %}July 2026{% endif %}</span>
     </div>
 
-    <div class="profile-stats">
-        <span><strong class="stat-num">{{ following_count(profile_user) }}</strong> <span class="stat-label">Following</span></span>
-        <span><strong class="stat-num">{{ follower_count(profile_user) }}</strong> <span class="stat-label">Followers</span></span>
-    </div>
-</div>
-
-<!-- Tabs Segment -->
-<div class="profile-nav-tabs">
-    <div class="profile-tab active">Posts</div>
-    <div class="profile-tab">Replies</div>
-    <div class="profile-tab">Media</div>
-    <div class="profile-tab">Likes</div>
-</div>
-
-<!-- Feed of Posts -->
-<div class="profile-feed">
-    {% if posts %}
-        {% for post in posts %}
-            {% set display_post = post.repost_source if post.repost_source else post %}
-            <article class="post-card">
-                <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
-                <div class="post-card-body">
-                    {% if post.repost_source %}
-                        <div class="text-muted small mb-1">
-                            <i class="bi bi-arrow-repeat"></i>
-                            {{ post.author.display_name or post.author.username }} reposted
-                        </div>
-                    {% endif %}
-                    <div class="post-card-header">
-                        <span class="post-author-name">{{ display_post.author.display_name or display_post.author.username }}</span>
-                        <span class="post-author-handle">@{{ display_post.author.username }}</span>
-                        <span class="post-dot">·</span>
-                        <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d') if (display_post.created_at and display_post.created_at.strftime) else '2d ago' }}</span>
-                        <div class="dropdown ms-auto">
-                            <button class="btn btn-sm btn-link text-muted text-decoration-none p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Post actions">
-                                <i class="bi bi-three-dots"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                {% if current_user and current_user.is_authenticated and post.user_id == current_user.id %}
-                                    <li>
-                                        <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                                            <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                        </form>
-                                    </li>
-                                {% else %}
-                                    <li><span class="dropdown-item-text text-muted">No actions available</span></li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                    {% if display_post.content %}
-                        <p class="post-card-text">{{ display_post.content }}</p>
-                    {% endif %}
-                    {% set media_urls = post_media_urls(display_post) %}
-                    {% if display_post.media_type == "image" and media_urls %}
-                        <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }}">
-                            {% for media_url in media_urls[:4] %}
-                                <img src="{{ media_url }}" alt="Post image {{ loop.index }}">
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    {% set comments = post_comments(display_post) %}
-                    {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
-                    <div class="post-card-footer">
-                        <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}" aria-expanded="false" aria-controls="comments-{{ post.id }}">
-                            <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
-                        </button>
-                        <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
-                            <button class="post-action action-repost {% if has_reposted(display_post) %}reposted{% endif %}" type="submit" aria-label="Repost">
-                                <i class="bi bi-arrow-repeat"></i><span class="repost-count">{{ repost_count(display_post) }}</span>
-                            </button>
-                        </form>
-                        <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form">
-                            <button class="post-action action-like {% if liked %}liked{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
-                                <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(display_post) }}</span>
-                            </button>
-                        </form>
-                        <button class="post-action action-share" type="button"><i class="bi bi-share"></i></button>
-                    </div>
-                    <div class="post-comments collapse" id="comments-{{ post.id }}">
-                        <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form">
-                            <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
-                            <button type="submit" class="btn btn-sm btn-primary rounded-pill">Reply</button>
-                        </form>
-                        {% if comments %}
-                            <div class="post-comment-list">
-                                {% for comment in comments %}
-                                    <div class="post-comment-item">
-                                        <img src="{{ user_avatar_url(comment.user) }}" class="post-comment-avatar" alt="Avatar">
-                                        <div>
-                                            <div class="post-comment-meta">
-                                                <span class="fw-bold">{{ comment.user.display_name or comment.user.username }}</span>
-                                                <span class="text-muted">@{{ comment.user.username }}</span>
-                                            </div>
-                                            <div class="post-comment-content">{{ comment.content }}</div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </article>
-        {% endfor %}
-    {% else %}
-        <div class="p-4 text-center text-muted border-bottom">
-            No posts yet.
+    {% if not is_profile_private_shield %}
+        <div class="profile-stats">
+            <span><strong class="stat-num">{{ following_count(profile_user) }}</strong> <span class="stat-label">Following</span></span>
+            <span><strong class="stat-num">{{ follower_count(profile_user) }}</strong> <span class="stat-label">Followers</span></span>
         </div>
     {% endif %}
 </div>
+
+{% if is_profile_private_shield %}
+    <div class="p-5 text-center text-muted border-bottom">
+        <div class="mb-3"><i class="bi bi-lock-fill" style="font-size: 3.5rem; color: var(--myownx-muted);"></i></div>
+        <h4 class="fw-bold text-dark">These posts are protected</h4>
+        <p class="small mx-auto text-muted mb-0" style="max-width: 340px;">Only approved followers can see @{{ profile_user.username }}'s posts and media.</p>
+    </div>
+{% else %}
+    <!-- Tabs Segment -->
+    <div class="profile-nav-tabs">
+        <div class="profile-tab active">Posts</div>
+        <div class="profile-tab">Replies</div>
+        <div class="profile-tab">Media</div>
+        <div class="profile-tab">Likes</div>
+    </div>
+
+    <!-- Feed of Posts -->
+    <div class="profile-feed">
+        {% if posts %}
+            {% for post in posts %}
+                {% set display_post = post.repost_source if post.repost_source else post %}
+                <article class="post-card">
+                    <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
+                    <div class="post-card-body">
+                        {% if post.repost_source %}
+                            <div class="text-muted small mb-1">
+                                <i class="bi bi-arrow-repeat"></i>
+                                {{ post.author.display_name or post.author.username }} reposted
+                            </div>
+                        {% endif %}
+                        <div class="post-card-header">
+                            <span class="post-author-name">{{ display_post.author.display_name or display_post.author.username }}</span>
+                            <span class="post-author-handle">@{{ display_post.author.username }}</span>
+                            <span class="post-dot">·</span>
+                            <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d') if (display_post.created_at and display_post.created_at.strftime) else '2d ago' }}</span>
+                            <div class="dropdown ms-auto">
+                                <button class="btn btn-sm btn-link text-muted text-decoration-none p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Post actions">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% if current_user and current_user.is_authenticated and post.user_id == current_user.id %}
+                                        <li>
+                                            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                                <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                            </form>
+                                        </li>
+                                    {% else %}
+                                        <li><span class="dropdown-item-text text-muted">No actions available</span></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% if display_post.content %}
+                            <p class="post-card-text">{{ display_post.content }}</p>
+                        {% endif %}
+                        {% set media_urls = post_media_urls(display_post) %}
+                        {% if display_post.media_type == "image" and media_urls %}
+                            <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }}">
+                                {% for media_url in media_urls[:4] %}
+                                    <img src="{{ media_url }}" alt="Post image {{ loop.index }}">
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% set comments = post_comments(display_post) %}
+                        {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
+                        <div class="post-card-footer">
+                            <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}" aria-expanded="false" aria-controls="comments-{{ post.id }}">
+                                <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
+                            </button>
+                            <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
+                                <button class="post-action action-repost {% if has_reposted(display_post) %}reposted{% endif %}" type="submit" aria-label="Repost">
+                                    <i class="bi bi-arrow-repeat"></i><span class="repost-count">{{ repost_count(display_post) }}</span>
+                                </button>
+                            </form>
+                            <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form">
+                                <button class="post-action action-like {% if liked %}liked{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
+                                    <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(display_post) }}</span>
+                                </button>
+                            </form>
+                            <button class="post-action action-share" type="button"><i class="bi bi-share"></i></button>
+                        </div>
+                        <div class="post-comments collapse" id="comments-{{ post.id }}">
+                            <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form">
+                                <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
+                                <button type="submit" class="btn btn-sm btn-primary rounded-pill">Reply</button>
+                            </form>
+                            {% if comments %}
+                                <div class="post-comment-list">
+                                    {% for comment in comments %}
+                                        <div class="post-comment-item">
+                                            <img src="{{ user_avatar_url(comment.user) }}" class="post-comment-avatar" alt="Avatar">
+                                            <div>
+                                                <div class="post-comment-meta">
+                                                    <span class="fw-bold">{{ comment.user.display_name or comment.user.username }}</span>
+                                                    <span class="text-muted">@{{ comment.user.username }}</span>
+                                                </div>
+                                                <div class="post-comment-content">{{ comment.content }}</div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        {% else %}
+            <div class="p-4 text-center text-muted border-bottom">
+                No posts yet.
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

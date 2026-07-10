@@ -39,6 +39,7 @@ class User(UserMixin, db.Model):
         cascade="all, delete-orphan",
     )
     sent_messages = db.relationship("Message", back_populates="sender", cascade="all, delete-orphan")
+    settings = db.relationship("UserSettings", back_populates="user", cascade="all, delete-orphan", uselist=False)
 
 
 class Post(db.Model):
@@ -155,3 +156,14 @@ class Message(db.Model):
 
     conversation = db.relationship("Conversation", back_populates="messages")
     sender = db.relationship("User", back_populates="sent_messages")
+
+
+class UserSettings(db.Model):
+    __tablename__ = "user_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    is_private = db.Column(db.Boolean, nullable=False, default=False)
+    allow_dms = db.Column(db.Boolean, nullable=False, default=True)
+
+    user = db.relationship("User", back_populates="settings")

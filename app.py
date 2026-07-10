@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import Comment, Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, db
+from models import Comment, Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, UserSettings, db
 
 
 login_manager = LoginManager()
@@ -99,6 +99,53 @@ def create_app(config_class=Config):
             return False
         return Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first() is not None
 
+    def user_settings(user, create=False):
+        if not user:
+            return None
+
+        settings = UserSettings.query.filter_by(user_id=user.id).first()
+        if settings:
+            return settings
+
+        settings = UserSettings(user_id=user.id, is_private=False, allow_dms=True)
+        if create:
+            db.session.add(settings)
+            db.session.commit()
+        return settings
+
+    def can_view_user_posts(user):
+        if not user:
+            return False
+        if current_user and current_user.is_authenticated and user.id == current_user.id:
+            return True
+
+        settings = user_settings(user)
+        if not settings or not settings.is_private:
+            return True
+
+        return is_following(user)
+
+    def can_view_post(post):
+        if not post:
+            return False
+        if not can_view_user_posts(post.author):
+            return False
+        if post.repost_source and not can_view_user_posts(post.repost_source.author):
+            return False
+        return True
+
+    def can_message_user(user):
+        if not user or not current_user or not current_user.is_authenticated:
+            return False
+        if user.id == current_user.id:
+            return False
+
+        settings = user_settings(user)
+        if not settings or settings.allow_dms:
+            return True
+
+        return Follow.query.filter_by(follower_id=user.id, following_id=current_user.id).first() is not None
+
     def recommended_users(limit=3):
         query = User.query.order_by(User.created_at.desc(), User.id.desc())
 
@@ -109,14 +156,15 @@ def create_app(config_class=Config):
         return query.limit(limit).all()
 
     def hot_posts(limit=5):
-        return (
+        sorted_posts = (
             Post.query.outerjoin(Like, Like.post_id == Post.id)
             .filter(Post.repost_from_id.is_(None))
             .group_by(Post.id)
             .order_by(func.count(Like.id).desc(), Post.created_at.desc(), Post.id.desc())
-            .limit(limit)
+            .limit(limit * 4)
             .all()
         )
+        return [post for post in sorted_posts if can_view_post(post)][:limit]
 
     def messageable_users(limit=10):
         query = User.query.order_by(User.created_at.desc(), User.id.desc())
@@ -124,7 +172,8 @@ def create_app(config_class=Config):
         if current_user and current_user.is_authenticated:
             query = query.filter(User.id != current_user.id)
 
-        return query.limit(limit).all()
+        candidate_users = query.limit(limit * 3).all()
+        return [user for user in candidate_users if can_message_user(user)][:limit]
 
     def like_count(post):
         if not post:
@@ -280,6 +329,10 @@ def create_app(config_class=Config):
             "follower_count": follower_count,
             "following_count": following_count,
             "is_following": is_following,
+            "user_settings": user_settings,
+            "can_view_user_posts": can_view_user_posts,
+            "can_view_post": can_view_post,
+            "can_message_user": can_message_user,
             "recommended_users": recommended_users,
             "hot_posts": hot_posts,
             "messageable_users": messageable_users,
@@ -333,7 +386,8 @@ def create_app(config_class=Config):
         return jsonify({"app": "myownX", "status": "ok"})
 
     def latest_posts():
-        return Post.query.order_by(Post.created_at.desc()).all()
+        posts = Post.query.order_by(Post.created_at.desc()).all()
+        return [post for post in posts if can_view_post(post)]
 
     def placeholder(page_title, **context):
         return render_template("placeholder.html", page_title=page_title, **context)
@@ -428,7 +482,7 @@ def create_app(config_class=Config):
     def toggle_like(post_id):
         post = db.session.get(Post, post_id)
 
-        if not post:
+        if not post or not can_view_post(post):
             flash("Post not found.", "error")
             return redirect_back("feed")
 
@@ -457,7 +511,7 @@ def create_app(config_class=Config):
     def create_comment(post_id):
         post = db.session.get(Post, post_id)
 
-        if not post:
+        if not post or not can_view_post(post):
             flash("Post not found.", "error")
             return redirect_back("feed")
 
@@ -483,7 +537,7 @@ def create_app(config_class=Config):
     def create_repost(post_id):
         post = db.session.get(Post, post_id)
 
-        if not post:
+        if not post or not can_view_post(post):
             flash("Post not found.", "error")
             return redirect_back("feed")
 
@@ -533,6 +587,10 @@ def create_app(config_class=Config):
 
         if user.id == current_user.id:
             flash("You cannot message yourself.", "error")
+            return redirect_back("messages")
+
+        if not can_message_user(user):
+            flash("This user only accepts messages from people they follow.", "error")
             return redirect_back("messages")
 
         conversation = private_conversation_with(user.id)
@@ -627,7 +685,8 @@ def create_app(config_class=Config):
     @app.get("/profile")
     @login_required
     def profile():
-        user_posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
+        posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
+        user_posts = [post for post in posts if can_view_post(post)]
         return placeholder("个人主页", user=current_user, posts=user_posts)
 
     @app.get("/users/<int:user_id>")
@@ -642,7 +701,12 @@ def create_app(config_class=Config):
         if user.id == current_user.id:
             return redirect(url_for("profile"))
 
-        user_posts = Post.query.filter_by(user_id=user.id).order_by(Post.created_at.desc()).all()
+        if can_view_user_posts(user):
+            posts = Post.query.filter_by(user_id=user.id).order_by(Post.created_at.desc()).all()
+            user_posts = [post for post in posts if can_view_post(post)]
+        else:
+            user_posts = []
+
         return render_template("profile.html", page_title=user.display_name, user=user, posts=user_posts)
 
     @app.post("/users/<int:user_id>/follow")
@@ -734,9 +798,19 @@ def create_app(config_class=Config):
 
         return render_template("profile_edit.html", page_title="Edit Profile")
 
-    @app.get("/settings")
+    @app.route("/settings", methods=["GET", "POST"])
+    @login_required
     def settings():
-        return placeholder("设置")
+        settings = user_settings(current_user, create=True)
+
+        if request.method == "POST":
+            settings.is_private = request.form.get("is_private") == "on"
+            settings.allow_dms = request.form.get("allow_dms") == "on"
+            db.session.commit()
+            flash("Privacy settings updated successfully.", "success")
+            return redirect(url_for("settings"))
+
+        return placeholder("设置", settings=settings)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():

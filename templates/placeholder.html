@@ -452,52 +452,41 @@
 
     <!-- 7. Settings Page -->
     {% elif request.path == '/settings' %}
-        <div class="settings-page">
-            <div class="settings-section">
-                <h3 class="settings-section-title">Edit Profile</h3>
-                <form action="#" method="GET" onsubmit="event.preventDefault(); alert('Information saved (Static Demo)');">
-                    <div class="mb-3">
-                        <label class="form-label" for="profile-name-input">Name</label>
-                        <input type="text" class="form-control-custom" id="profile-name-input" value="Demo User">
+        <div class="settings-page p-3">
+            <div class="settings-section mb-4">
+                <h3 class="settings-section-title mb-3" style="font-size: 1.25rem; font-weight: 800;">Privacy & Safety</h3>
+                {% set privacy_settings = settings if (settings is defined and settings) else user_settings(current_user) %}
+                <form action="{{ url_for('settings') }}" method="POST" class="p-3 border rounded-4 bg-light bg-opacity-50">
+                    <div class="setting-row d-flex justify-content-between align-items-center mb-3">
+                        <div class="setting-label-col me-3">
+                            <div class="setting-title fw-bold" style="font-size: 0.95rem; color: var(--myownx-text);">Private Account</div>
+                            <div class="setting-desc text-muted small">Only current followers will be able to see your posts and media.</div>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="privateSwitch" name="is_private" {% if privacy_settings and privacy_settings.is_private %}checked{% endif %} style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="profile-bio-input">Bio</label>
-                        <textarea class="form-control-custom" id="profile-bio-input" rows="3">Hello! I am the myownX experience officer. Exploring the local responsive UI design. Frontend logic is being continuously delivered!</textarea>
+
+                    <div class="setting-row border-top pt-3 d-flex justify-content-between align-items-center mb-3">
+                        <div class="setting-label-col me-3">
+                            <div class="setting-title fw-bold" style="font-size: 0.95rem; color: var(--myownx-text);">Allow DMs from anyone</div>
+                            <div class="setting-desc text-muted small">If disabled, only users you follow can send you direct messages.</div>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="dmSwitch" name="allow_dms" {% if not privacy_settings or privacy_settings.allow_dms %}checked{% endif %} style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4" style="background-color: var(--myownx-theme); border:none; font-weight:700;">Save changes</button>
+
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold mt-2" style="background-color: var(--myownx-theme); border:none; font-size: 0.9rem;">Save privacy settings</button>
                 </form>
-            </div>
-
-            <div class="settings-section">
-                <h3 class="settings-section-title">Privacy & Safety</h3>
-                
-                <div class="setting-row">
-                    <div class="setting-label-col">
-                        <div class="setting-title">Private Account</div>
-                        <div class="setting-desc">Only current followers will be able to see your posts and media.</div>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="privateSwitch" style="width: 2.5em; height: 1.25em;">
-                    </div>
-                </div>
-
-                <div class="setting-row border-top pt-3">
-                    <div class="setting-label-col">
-                        <div class="setting-title">Allow DMs from anyone</div>
-                        <div class="setting-desc">If disabled, only users you follow can send you direct messages.</div>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="dmSwitch" checked style="width: 2.5em; height: 1.25em;">
-                    </div>
-                </div>
             </div>
             
             <div class="settings-section">
-                <h3 class="settings-section-title">System Info</h3>
-                <div class="text-muted small">
+                <h3 class="settings-section-title mb-3" style="font-size: 1.25rem; font-weight: 800;">System Info</h3>
+                <div class="p-3 border rounded-4 bg-light bg-opacity-25 text-muted small">
                     <p class="mb-1">System Name: myownX Web Platform (Local Demo)</p>
-                    <p class="mb-1">Version: v0.1.0-alpha (UI-TASK-0)</p>
-                    <p class="mb-0">Core Stack: Flask, Bootstrap 5.3.3, SQLite</p>
+                    <p class="mb-1">Version: v0.2.0-stable (UI-TASK-11)</p>
+                    <p class="mb-0">Core Stack: Python Flask, Bootstrap 5.3.3, SQLAlchemy, SQLite</p>
                 </div>
             </div>
         </div>
