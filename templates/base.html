@@ -9,12 +9,12 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Custom Style -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3">
 </head>
 <body>
 
     <!-- Determine if auth page or chat page for screen layout -->
-    {% set is_chat_page = request.endpoint in ['messages', 'conversation'] %}
+    {% set is_chat_page = request.endpoint in ['messages', 'start_conversation', 'conversation'] %}
     {% if request.path in ['/login', '/register'] %}
         <div class="container d-flex align-items-center justify-content-center min-vh-100">
             {% block auth_content %}{% endblock %}
@@ -90,7 +90,7 @@
                 <i class="bi {% if request.path in ['/', '/feed'] %}bi-house-door-fill{% else %}bi-house-door{% endif %}"></i>
             </a>
             <a href="{{ url_for('discover') }}" class="mobile-nav-link {% if request.path == '/discover' %}active{% endif %}">
-                <i class="bi {% if request.path == '/discover' %}bi-search-heart-fill{% else %}bi-search{% endif %}"></i>
+                <i class="bi {% if request.path == '/discover' %}bi-compass-fill{% else %}bi-compass{% endif %}"></i>
             </a>
             <a href="{{ url_for('notifications') }}" class="mobile-nav-link position-relative {% if request.path == '/notifications' %}active{% endif %}">
                 <i class="bi {% if request.path == '/notifications' %}bi-bell-fill{% else %}bi-bell{% endif %}"></i>
@@ -100,8 +100,8 @@
                     </span>
                 {% endif %}
             </a>
-            <a href="{{ url_for('messages') }}" class="mobile-nav-link position-relative {% if request.endpoint in ['messages', 'conversation'] %}active{% endif %}">
-                <i class="bi {% if request.endpoint in ['messages', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+            <a href="{{ url_for('messages') }}" class="mobile-nav-link position-relative {% if request.endpoint in ['messages', 'start_conversation', 'conversation'] %}active{% endif %}">
+                <i class="bi {% if request.endpoint in ['messages', 'start_conversation', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
                 {% if unread_messages_count > 0 %}
                     <span class="position-absolute top-0 start-50 translate-middle-y badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; transform: translate(5px, 8px) !important;">
                         {{ unread_messages_count }}
@@ -135,7 +135,7 @@
                         </li>
                         <li>
                             <a href="{{ url_for('discover') }}" class="menu-item {% if request.path == '/discover' %}active{% endif %}">
-                                <i class="bi {% if request.path == '/discover' %}bi-hash-square-fill{% else %}bi-hash{% endif %}"></i>
+                                <i class="bi {% if request.path == '/discover' %}bi-compass-fill{% else %}bi-compass{% endif %}"></i>
                                 <span class="d-none d-xl-inline">Explore</span>
                             </a>
                         </li>
@@ -153,9 +153,9 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('messages') }}" class="menu-item {% if request.endpoint in ['messages', 'conversation'] %}active{% endif %}">
+                            <a href="{{ url_for('messages') }}" class="menu-item {% if request.endpoint in ['messages', 'start_conversation', 'conversation'] %}active{% endif %}">
                                 <span class="position-relative d-inline-flex">
-                                    <i class="bi {% if request.endpoint in ['messages', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
+                                    <i class="bi {% if request.endpoint in ['messages', 'start_conversation', 'conversation'] %}bi-envelope-fill{% else %}bi-envelope{% endif %}"></i>
                                     {% if unread_messages_count > 0 %}
                                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle" style="font-size: 0.62rem; padding: 2px 5px; background-color: var(--myownx-theme) !important; color: #ffffff; margin-left: -2px; margin-top: 2px;">
                                             {{ unread_messages_count }}
@@ -287,36 +287,36 @@
                     
                     <div class="widget-card-item">
                         <div class="trend-item">
+                            <span class="trend-category">Sports · Trending</span>
+                            <span class="trend-title">2026 FIFA World Cup</span>
+                            <span class="trend-posts">Knockout-stage conversation</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="trend-item">
+                            <span class="trend-category">Tennis · Trending</span>
+                            <span class="trend-title">Wimbledon 2026</span>
+                            <span class="trend-posts">Championship week</span>
+                        </div>
+                        <i class="bi bi-three-dots text-muted"></i>
+                    </div>
+
+                    <div class="widget-card-item">
+                        <div class="trend-item">
                             <span class="trend-category">Technology · Trending</span>
-                            <span class="trend-title">#myownXIsLive</span>
-                            <span class="trend-posts">12K Posts</span>
+                            <span class="trend-title">Humanoid robots</span>
+                            <span class="trend-posts">AI and robotics discussion</span>
                         </div>
                         <i class="bi bi-three-dots text-muted"></i>
                     </div>
 
                     <div class="widget-card-item">
                         <div class="trend-item">
-                            <span class="trend-category">Education · Trending</span>
-                            <span class="trend-title">#WebSocialNetwork</span>
-                            <span class="trend-posts">854 Posts</span>
-                        </div>
-                        <i class="bi bi-three-dots text-muted"></i>
-                    </div>
-
-                    <div class="widget-card-item">
-                        <div class="trend-item">
-                            <span class="trend-category">Programming · Trending</span>
-                            <span class="trend-title">#PythonFlaskBackend</span>
-                            <span class="trend-posts">2.3K Posts</span>
-                        </div>
-                        <i class="bi bi-three-dots text-muted"></i>
-                    </div>
-
-                    <div class="widget-card-item">
-                        <div class="trend-item">
-                            <span class="trend-category">Frontend · Trending</span>
-                            <span class="trend-title">#BootstrapResponsiveUI</span>
-                            <span class="trend-posts">1.5K Posts</span>
+                            <span class="trend-category">Entertainment · Trending</span>
+                            <span class="trend-title">Summer streaming releases</span>
+                            <span class="trend-posts">New music, films and games</span>
                         </div>
                         <i class="bi bi-three-dots text-muted"></i>
                     </div>

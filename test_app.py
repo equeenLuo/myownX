@@ -289,6 +289,40 @@ class MyownXFlowTests(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(Conversation.query.filter_by(conversation_type="group").count(), 1)
 
+    def test_chat_search_matches_people_and_message_content(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob Builder")
+        carol_id = self.create_user("carol", "Carol Designer")
+
+        with self.app.app_context():
+            bob_chat = Conversation(conversation_type="private")
+            carol_chat = Conversation(conversation_type="private")
+            db.session.add_all([bob_chat, carol_chat])
+            db.session.flush()
+            db.session.add_all(
+                [
+                    ConversationMember(conversation_id=bob_chat.id, user_id=alice_id),
+                    ConversationMember(conversation_id=bob_chat.id, user_id=bob_id),
+                    ConversationMember(conversation_id=carol_chat.id, user_id=alice_id),
+                    ConversationMember(conversation_id=carol_chat.id, user_id=carol_id),
+                    Message(conversation_id=bob_chat.id, sender_id=bob_id, content="Project Aurora is ready"),
+                    Message(conversation_id=carol_chat.id, sender_id=carol_id, content="Review the design board"),
+                ]
+            )
+            db.session.commit()
+
+        self.login("alice")
+        content_result = self.client.get("/messages?q=aurora")
+        self.assertIn(b'data-conversation-title="Bob Builder"', content_result.data)
+        self.assertNotIn(b'data-conversation-title="Carol Designer"', content_result.data)
+
+        username_result = self.client.get("/messages?q=carol")
+        self.assertIn(b'data-conversation-title="Carol Designer"', username_result.data)
+        self.assertNotIn(b'data-conversation-title="Bob Builder"', username_result.data)
+
+        empty_result = self.client.get("/messages?q=missing-term")
+        self.assertIn(b"No conversations match your search.", empty_result.data)
+
     def test_profile_relationship_lists_and_post_timestamps(self):
         alice_id = self.create_user("alice", "Alice")
         bob_id = self.create_user("bob", "Bob")
@@ -599,17 +633,23 @@ class MyownXFlowTests(unittest.TestCase):
 
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
-        self.assertEqual(summary["users"], 4)
-        self.assertEqual(summary["posts"], 7)
-        self.assertEqual(summary["follows"], 6)
-        self.assertEqual(summary["notifications"], 6)
-        self.assertEqual(summary["messages"], 2)
+        self.assertGreaterEqual(summary["users"], 110)
+        self.assertGreaterEqual(summary["posts"], 1000)
+        self.assertGreater(summary["follows"], 1000)
+        self.assertGreater(summary["likes"], 5000)
+        self.assertGreater(summary["notifications"], 500)
+        self.assertGreater(summary["conversations"], 50)
+        self.assertGreater(summary["messages"], 500)
 
         with self.app.app_context():
-            self.assertEqual(User.query.filter(User.username.in_(DEMO_USERNAMES)).count(), 4)
-            self.assertTrue(UserSettings.query.filter_by(is_private=True, allow_dms=False).first())
-            self.assertEqual(Conversation.query.count(), 1)
-            self.assertEqual(ConversationMember.query.count(), 2)
+            self.assertEqual(User.query.filter(User.username.in_(DEMO_USERNAMES)).count(), len(DEMO_USERNAMES))
+            for index in range(1, 11):
+                user = User.query.filter_by(username=f"test{index}").one()
+                self.assertEqual(user.display_name, f"test{index}")
+                self.assertTrue(user.profile_picture_path.endswith(f"demo-avatar-{index:03d}.svg"))
+                self.assertTrue(user.profile_banner_path.endswith(f"demo-banner-{index:03d}.svg"))
+            self.assertEqual(Conversation.query.count(), summary["conversations"])
+            self.assertGreater(ConversationMember.query.count(), summary["conversations"] * 2)
 
         with self.assertRaises(ValueError):
             seed_demo_data(self.app)

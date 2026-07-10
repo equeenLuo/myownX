@@ -112,7 +112,7 @@
             {% set suggested_list = users if (users is defined and users) else (recommended_users(5) if recommended_users is defined else []) %}
             {% if suggested_list %}
                 {% for suggested_user in suggested_list %}
-                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="discover-person-row p-3 border-bottom d-flex justify-content-between align-items-center">
                         <a href="{{ url_for('user_profile', user_id=suggested_user.id) }}" class="follow-user text-decoration-none">
                             <img src="{{ user_avatar_url(suggested_user) }}" class="follow-user-avatar" alt="Avatar">
                             <div class="follow-user-info">
@@ -148,7 +148,7 @@
             {% if hot_posts %}
                 {% for post in hot_posts %}
                     {% set display_post = post.repost_source if post.repost_source else post %}
-                    <article class="post-card {% if post.repost_source %}post-card-repost{% endif %} p-3 border-bottom" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
+                    <article class="post-card discover-post-card {% if post.repost_source %}post-card-repost{% endif %}" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
                         <div class="d-flex gap-3">
                             <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
                                 <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
@@ -195,7 +195,7 @@
                                     <div class="replying-to">Replying to <a href="{{ url_for('user_profile', user_id=post.reply_to_post.author.id) }}">@{{ post.reply_to_post.author.username }}</a></div>
                                 {% endif %}
                                 {% if display_post.content %}
-                                    <p class="post-card-text mt-2" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
+                                    <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
                                 {% endif %}
                                 <!-- Dynamic Post Media Render -->
                                 {% set media_urls = post_media_urls(display_post) %}
@@ -208,7 +208,7 @@
                                 {% endif %}
                                 {% set comments = post_comments(display_post) %}
                                 {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
-                                <div class="post-card-footer mt-3 text-muted">
+                                <div class="post-card-footer">
                                     <button class="post-action action-comment border-0 bg-transparent text-muted" type="button" data-open-reply-modal="true" aria-label="Reply">
                                         <i class="bi bi-chat"></i> <span class="ms-1">{{ comments|length }}</span>
                                     </button>
@@ -222,7 +222,7 @@
                                             <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i> <span class="ms-1 like-count">{{ like_count(display_post) }}</span>
                                         </button>
                                     </form>
-                                    <button class="post-action action-share border-0 bg-transparent text-muted" type="button" onclick="navigator.clipboard.writeText('{{ url_for('user_profile', user_id=display_post.author.id, _external=True) }}');"><i class="bi bi-share"></i></button>
+                                    <button class="post-action action-share border-0 bg-transparent text-muted" type="button" onclick="navigator.clipboard.writeText('{{ url_for('post_detail', post_id=display_post.id, _external=True) }}');"><i class="bi bi-share"></i></button>
                                 </div>
                                 <div class="post-comments d-none" id="comments-discover-{{ post.id }}">
                                     <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form mt-2 d-flex gap-2">
@@ -258,10 +258,6 @@
         </div>
     <!-- 3. Notifications Page -->
     {% elif request.path == '/notifications' %}
-        <div class="d-flex border-bottom text-center">
-            <div class="flex-grow-1 py-3 fw-bold border-primary border-bottom-0" style="color: var(--myownx-text); border-bottom: 3px solid var(--myownx-theme) !important; font-size: 1.05rem;">All Notifications</div>
-        </div>
-
         <div class="notifications-feed">
             {% if notifications %}
                 {% for notification in notifications %}
@@ -364,7 +360,10 @@
                             <i class="bi bi-envelope-plus"></i>
                         </div>
                     </div>
-                    <div class="messages-search"><i class="bi bi-search"></i><span>Search</span></div>
+                    <form action="{{ url_for('messages') }}" method="GET" class="messages-search">
+                        <i class="bi bi-search"></i>
+                        <input type="search" name="q" value="{{ message_search_query|default('') }}" placeholder="Search conversations" maxlength="100" aria-label="Search conversations">
+                    </form>
                 </div>
                 {% if conversations %}
                     {% for conversation_item in conversations %}
@@ -372,7 +371,7 @@
                         {% set last_message = conversation_last_message(conversation_item) %}
                         {% set is_group = conversation_item.conversation_type == 'group' %}
                         {% set is_unread_chat = conversation_has_unread_messages(conversation_item) %}
-                        <a href="{{ url_for('conversation', conversation_id=conversation_item.id) }}" class="chat-item text-decoration-none {% if is_unread_chat %}unread-chat{% endif %} {% if active_conversation is defined and active_conversation and active_conversation.id == conversation_item.id %}active{% endif %}">
+                        <a href="{{ url_for('conversation', conversation_id=conversation_item.id) }}" class="chat-item text-decoration-none {% if is_unread_chat %}unread-chat{% endif %} {% if active_conversation is defined and active_conversation and active_conversation.id == conversation_item.id %}active{% endif %}" data-conversation-title="{{ conversation_title(conversation_item) }}">
                             {% if is_group %}
                                 <span class="chat-avatar group-chat-avatar"><i class="bi bi-people-fill"></i></span>
                             {% else %}
@@ -399,10 +398,11 @@
                     {% endfor %}
                 {% else %}
                     <div class="p-4 text-center text-muted border-bottom">
-                        No conversations yet.
+                        {% if message_search_query %}No conversations match your search.{% else %}No conversations yet.{% endif %}
                     </div>
                 {% endif %}
 
+                {% if not message_search_query %}
                 <div class="new-conversation-panel">
                     {% if users %}
                         <details class="group-chat-builder">
@@ -435,6 +435,7 @@
                         <div class="text-muted small">No other users yet.</div>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
 
             <!-- Right Messages Pane -->

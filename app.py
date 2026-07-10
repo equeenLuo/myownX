@@ -417,7 +417,7 @@ def create_app(config_class=Config):
             | ((Notification.conversation_id.is_(None)) & (Notification.actor_id == other_user.id))
         ).first() is not None
 
-    def user_conversations():
+    def user_conversations(search_query=""):
         if not current_user or not current_user.is_authenticated:
             return []
 
@@ -431,6 +431,21 @@ def create_app(config_class=Config):
             for conversation in conversations
             if conversation.conversation_type == "group" or conversation_last_message(conversation)
         ]
+        search_query = (search_query or "").strip().casefold()
+        if search_query:
+            filtered_conversations = []
+            for conversation in visible_conversations:
+                searchable_values = [conversation.title or ""]
+                searchable_values.extend(
+                    value
+                    for member in conversation.members
+                    if member.user
+                    for value in (member.user.username, member.user.display_name or "")
+                )
+                searchable_values.extend(message.content for message in conversation.messages)
+                if search_query in "\n".join(searchable_values).casefold():
+                    filtered_conversations.append(conversation)
+            visible_conversations = filtered_conversations
         return sorted(
             visible_conversations,
             key=lambda conversation: (
@@ -864,7 +879,13 @@ def create_app(config_class=Config):
     @app.get("/messages")
     @login_required
     def messages():
-        return placeholder("私信", conversations=user_conversations(), users=messageable_users(limit=10))
+        message_search_query = request.args.get("q", "").strip()[:MAX_SEARCH_QUERY_LENGTH]
+        return placeholder(
+            "私信",
+            conversations=user_conversations(message_search_query),
+            users=messageable_users(limit=10),
+            message_search_query=message_search_query,
+        )
 
     @app.route("/messages/start/<int:user_id>", methods=["GET", "POST"])
     @login_required
