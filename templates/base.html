@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
     <!-- Custom Style -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.6">
 </head>
 <body>
 
@@ -244,10 +244,10 @@
             <aside class="widgets-right {% if is_chat_page %}d-none{% endif %}">
                 <!-- Search bar -->
                 <div class="search-container">
-                    <div class="search-wrapper">
+                    <form action="{{ url_for('search') }}" method="GET" class="search-wrapper">
                         <i class="bi bi-search search-icon"></i>
-                        <input type="text" class="search-input" placeholder="Search myownX">
-                    </div>
+                        <input type="search" name="q" class="search-input" placeholder="Search myownX" value="{{ search_query|default('') }}" maxlength="100" aria-label="Search myownX">
+                    </form>
                 </div>
                 
                 <!-- Recommended Users -->

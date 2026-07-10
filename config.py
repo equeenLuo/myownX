@@ -10,3 +10,4 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH.as_posix()}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SEND_FILE_MAX_AGE_DEFAULT = 0

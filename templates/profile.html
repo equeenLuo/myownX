@@ -14,4 +14,9 @@
         {% endif %}
     {% endwith %}
     {% include "_profile.html" %}
+
+    <!-- Edit Profile Modal Dialog Overlay -->
+    {% if current_user.is_authenticated %}
+        {% include "_profile_edit.html" %}
+    {% endif %}
 {% endblock %}

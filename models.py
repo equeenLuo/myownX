@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     bio = db.Column(db.String(255), nullable=True)
     profile_picture_path = db.Column(db.String(255), nullable=True)
+    profile_banner_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     posts = db.relationship("Post", back_populates="author", cascade="all, delete-orphan")

@@ -17,14 +17,16 @@
 </div>
 
 <!-- Profile Banner Cover Photo -->
-<div class="profile-cover"></div>
+<div class="profile-cover">
+    <img src="{{ user_banner_url(profile_user) }}" class="profile-cover-img" alt="Cover Banner">
+</div>
 
 <!-- Avatar and Actions Column -->
 <div class="profile-avatar-container">
     <img src="{{ user_avatar_url(profile_user) }}" class="profile-avatar" alt="Avatar">
 
     {% if current_user and current_user.is_authenticated and profile_user and profile_user.id == current_user.id %}
-        <a href="{{ url_for('profile_edit') }}" class="btn-profile-edit">Edit profile</a>
+        <button type="button" class="btn-profile-edit" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit profile</button>
     {% elif current_user and current_user.is_authenticated and profile_user %}
         {% if is_following(profile_user) %}
             <form action="{{ url_for('unfollow_user', user_id=profile_user.id) }}" method="POST">

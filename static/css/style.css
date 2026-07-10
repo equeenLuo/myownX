@@ -857,17 +857,18 @@ a:hover {
 
 .profile-avatar-container {
     padding: 0 16px;
-    margin-top: -75px;
+    margin-top: 0;
     position: relative;
     z-index: 2;
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
 }
 
 .profile-avatar {
-    width: 140px;
-    height: 140px;
+    width: 136px;
+    height: 136px;
+    margin-top: -68px;
     border-radius: 50%;
     border: 4px solid var(--myownx-bg);
     background-color: #ccc;
@@ -2297,8 +2298,13 @@ body {
 }
 
 .profile-avatar-container {
-    min-height: 82px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     padding: 0 16px;
+    margin-top: 0;
+    margin-bottom: 12px;
+    min-height: 82px;
 }
 
 .profile-avatar {
@@ -2306,6 +2312,14 @@ body {
     height: 136px;
     margin-top: -68px;
     border: 4px solid #ffffff;
+    border-radius: 50% !important;
+    object-fit: cover;
+    background-color: #ffffff;
+    z-index: 2;
+}
+
+.profile-avatar-container > :not(.profile-avatar) {
+    margin-top: 12px;
 }
 
 .profile-meta-info {
@@ -3271,4 +3285,137 @@ body {
     font-size: 0.78rem;
     margin-top: 6px;
     white-space: nowrap;
+}
+
+/* ==================== Search Results Page Styling Overhaul ==================== */
+.search-tab-item {
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.search-tab-item:hover {
+    background-color: var(--myownx-light-hover) !important;
+}
+
+.search-tab-item.active {
+    color: var(--myownx-text) !important;
+}
+
+/* 保证搜索中的用户卡片Follow/Following按钮和widgets里的样式完全统一 */
+.people-feed .btn-following {
+    height: 32px !important;
+    padding: 0 16px !important;
+    border: 1px solid rgb(207, 217, 222) !important;
+    color: rgb(15, 20, 25) !important;
+    background-color: transparent !important;
+    border-radius: 9999px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.people-feed .btn-following:hover {
+    background-color: rgba(244, 33, 46, 0.1) !important;
+    border-color: rgb(244, 33, 46) !important;
+    color: rgb(244, 33, 46) !important;
+}
+
+.people-feed .btn-following:hover .btn-following-text {
+    display: none !important;
+}
+
+.people-feed .btn-following:hover::after {
+    content: "Unfollow" !important;
+}
+
+.people-feed .btn-follow {
+    height: 32px;
+    padding: 0 16px;
+    background-color: rgb(15, 20, 25);
+    color: #ffffff !important;
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.people-feed .btn-follow:hover {
+    background-color: rgb(39, 44, 48);
+}
+
+/* ==================== Profile Banner Cover Styling ==================== */
+.profile-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.profile-cover-upload-container label:hover {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ==================== Edit Profile Modal Custom Styling ==================== */
+#editProfileModal .modal-header {
+    border-bottom: 1px solid var(--myownx-border) !important;
+}
+
+#editProfileModal .btn-close {
+    background-image: none !important;
+    opacity: 1 !important;
+}
+
+/* Custom Floating Label Inputs */
+.form-floating-custom {
+    position: relative;
+    border: 1px solid rgb(207, 217, 222);
+    border-radius: 4px;
+    padding: 8px 12px 4px;
+    background-color: transparent;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-height: 56px;
+}
+
+.form-floating-custom:focus-within {
+    border-color: var(--myownx-theme) !important;
+    box-shadow: 0 0 0 1px var(--myownx-theme);
+}
+
+.custom-floating-label {
+    position: absolute;
+    left: 12px;
+    top: 6px;
+    font-size: 0.8rem;
+    color: var(--myownx-muted);
+    font-weight: 500;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.form-floating-custom:focus-within .custom-floating-label {
+    color: var(--myownx-theme) !important;
+}
+
+.custom-input-field {
+    width: 100%;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: 1.02rem;
+    color: var(--myownx-text);
+    margin-top: 14px;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.custom-input-field:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }

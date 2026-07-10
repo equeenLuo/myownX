@@ -19,11 +19,14 @@ login_manager.login_message = "Please sign in to continue."
 login_manager.login_message_category = "info"
 
 DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
+DEFAULT_BANNER_PATH = "images/default-banner.svg"
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_POST_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_POST_IMAGES = 4
 MAX_COMMENT_LENGTH = 280
 MAX_MESSAGE_LENGTH = 1000
+MAX_SEARCH_QUERY_LENGTH = 100
+MAX_SEARCH_RESULTS = 50
 
 
 @login_manager.user_loader
@@ -62,6 +65,11 @@ def ensure_schema_updates(app):
     table_names = set(inspector.get_table_names())
 
     with db.engine.begin() as connection:
+        if "users" in table_names:
+            user_columns = {column["name"] for column in inspector.get_columns("users")}
+            if "profile_banner_path" not in user_columns:
+                connection.execute(text("ALTER TABLE users ADD COLUMN profile_banner_path VARCHAR(255)"))
+
         if "posts" in table_names:
             post_columns = {column["name"] for column in inspector.get_columns("posts")}
             if "repost_from_id" not in post_columns:
@@ -108,8 +116,10 @@ def create_app(config_class=Config):
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     avatar_upload_dir = Path(app.static_folder) / "uploads" / "avatars"
+    banner_upload_dir = Path(app.static_folder) / "uploads" / "banners"
     post_upload_dir = Path(app.static_folder) / "uploads" / "posts"
     avatar_upload_dir.mkdir(parents=True, exist_ok=True)
+    banner_upload_dir.mkdir(parents=True, exist_ok=True)
     post_upload_dir.mkdir(parents=True, exist_ok=True)
 
     with app.app_context():
@@ -224,6 +234,29 @@ def create_app(config_class=Config):
             .all()
         )
         return [post for post in sorted_posts if can_view_post(post)][:limit]
+
+    def search_users(query):
+        pattern = f"%{query}%"
+        return (
+            User.query.filter((User.username.ilike(pattern)) | (User.display_name.ilike(pattern)))
+            .order_by(User.created_at.desc(), User.id.desc())
+            .limit(MAX_SEARCH_RESULTS)
+            .all()
+        )
+
+    def search_posts(query):
+        pattern = f"%{query}%"
+        candidate_posts = (
+            Post.query.filter(
+                Post.reply_to_post_id.is_(None),
+                Post.repost_from_id.is_(None),
+                Post.content.ilike(pattern),
+            )
+            .order_by(Post.created_at.desc(), Post.id.desc())
+            .limit(MAX_SEARCH_RESULTS * 4)
+            .all()
+        )
+        return [post for post in candidate_posts if can_view_post(post)][:MAX_SEARCH_RESULTS]
 
     def messageable_users(limit=10):
         query = User.query.order_by(User.created_at.desc(), User.id.desc())
@@ -451,6 +484,14 @@ def create_app(config_class=Config):
                 return url_for("static", filename=path)
             return DEFAULT_AVATAR_URL
 
+        def user_banner_url(user):
+            if user and getattr(user, "profile_banner_path", None):
+                path = user.profile_banner_path
+                if path.startswith(("http://", "https://", "/")):
+                    return path
+                return url_for("static", filename=path)
+            return url_for("static", filename=DEFAULT_BANNER_PATH)
+
         def post_media_url(post):
             media_paths = parse_post_media_paths(getattr(post, "media_path", None))
             if media_paths:
@@ -471,6 +512,7 @@ def create_app(config_class=Config):
 
         return {
             "user_avatar_url": user_avatar_url,
+            "user_banner_url": user_banner_url,
             "post_media_url": post_media_url,
             "post_media_urls": post_media_urls,
             "follower_count": follower_count,
@@ -761,6 +803,29 @@ def create_app(config_class=Config):
     @app.get("/discover")
     def discover():
         return placeholder("发现", users=recommended_users(limit=10), hot_posts=hot_posts(limit=5))
+
+    @app.get("/search")
+    def search():
+        search_query = request.args.get("q", "").strip()
+        context = {
+            "page_title": "Search",
+            "search_query": search_query,
+            "searched": bool(search_query),
+            "users": [],
+            "posts": [],
+            "search_error": None,
+        }
+
+        if not search_query:
+            return render_template("search.html", **context)
+
+        if len(search_query) > MAX_SEARCH_QUERY_LENGTH:
+            context["search_error"] = "Search query must be 100 characters or fewer."
+            return render_template("search.html", **context)
+
+        context["users"] = search_users(search_query)
+        context["posts"] = search_posts(search_query)
+        return render_template("search.html", **context)
 
     @app.get("/messages")
     @login_required
@@ -1087,6 +1152,16 @@ def create_app(config_class=Config):
                 return render_template("profile_edit.html", page_title="Edit Profile")
 
             avatar_file = request.files.get("profile_picture")
+            banner_file = request.files.get("profile_banner")
+
+            if banner_file and banner_file.filename:
+                original_filename = secure_filename(banner_file.filename)
+                extension = file_extension(original_filename)
+
+                if extension not in ALLOWED_AVATAR_EXTENSIONS:
+                    flash("Profile banner must be a png, jpg, jpeg, gif, or webp file.", "error")
+                    return render_template("profile_edit.html", page_title="Edit Profile")
+
             if avatar_file and avatar_file.filename:
                 original_filename = secure_filename(avatar_file.filename)
                 extension = file_extension(original_filename)
@@ -1098,6 +1173,12 @@ def create_app(config_class=Config):
                 filename = f"user_{current_user.id}_{uuid4().hex}.{extension}"
                 avatar_file.save(avatar_upload_dir / filename)
                 current_user.profile_picture_path = f"uploads/avatars/{filename}"
+
+            if banner_file and banner_file.filename:
+                extension = file_extension(banner_file.filename)
+                filename = f"banner_{current_user.id}_{uuid4().hex}.{extension}"
+                banner_file.save(banner_upload_dir / filename)
+                current_user.profile_banner_path = f"uploads/banners/{filename}"
 
             current_user.display_name = display_name
             current_user.bio = bio or None

@@ -430,6 +430,94 @@ class MyownXFlowTests(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(Post.query.filter_by(user_id=bob_id, reply_to_post_id=post_id).count(), 1)
 
+    def test_search_matches_users_and_visible_standalone_posts(self):
+        alice_id = self.create_user("alice", "Alice Example")
+        bob_id = self.create_user("bob", "Robert")
+        carol_id = self.create_user("carol", "Carol")
+
+        with self.app.app_context():
+            public_post = Post(user_id=alice_id, content="Flask classroom search demo")
+            private_post = Post(user_id=bob_id, content="Flask private search demo")
+            reply = Post(user_id=carol_id, content="Flask reply should stay hidden", reply_to_post_id=public_post.id)
+            repost = Post(user_id=carol_id, content="", repost_from_id=public_post.id)
+            db.session.add_all(
+                [
+                    public_post,
+                    private_post,
+                    UserSettings(user_id=bob_id, is_private=True),
+                ]
+            )
+            db.session.flush()
+            reply.reply_to_post_id = public_post.id
+            repost.repost_from_id = public_post.id
+            db.session.add_all([reply, repost])
+            db.session.commit()
+
+        public_search = self.client.get("/search?q=flask")
+        self.assertEqual(public_search.status_code, 200)
+        self.assertIn(b"Flask classroom search demo", public_search.data)
+        self.assertNotIn(b"Flask private search demo", public_search.data)
+        self.assertNotIn(b"Flask reply should stay hidden", public_search.data)
+
+        user_search = self.client.get("/search?q=example")
+        self.assertIn(b"Alice Example", user_search.data)
+
+        empty_search = self.client.get("/search")
+        self.assertIn(b"Try searching for people or posts.", empty_search.data)
+
+        long_search = self.client.get("/search?q=" + ("a" * 101))
+        self.assertIn(b"Search query must be 100 characters or fewer.", long_search.data)
+
+        self.login("carol")
+        self.client.post(f"/users/{bob_id}/follow", follow_redirects=True)
+        followed_search = self.client.get("/search?q=private")
+        self.assertIn(b"Flask private search demo", followed_search.data)
+
+    def test_profile_banner_upload_and_default_banner_helper(self):
+        user_id = self.create_user("alice", "Alice")
+        self.login("alice")
+
+        response = self.client.post(
+            "/profile/edit",
+            data={
+                "display_name": "Alice",
+                "bio": "Banner test",
+                "profile_banner": (BytesIO(b"\x89PNG\r\n\x1a\n"), "banner.png"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+
+        with self.app.app_context():
+            user = db.session.get(User, user_id)
+            self.assertTrue(user.profile_banner_path.startswith("uploads/banners/banner_"))
+            self.uploaded_paths.append(Path(self.app.static_folder) / user.profile_banner_path)
+
+        with self.app.test_request_context():
+            helpers = {}
+            for processor in self.app.template_context_processors[None]:
+                helpers.update(processor())
+
+            self.assertIn("uploads/banners/banner_", helpers["user_banner_url"](user))
+            self.assertTrue(
+                helpers["user_banner_url"](User(username="new", display_name="New")).endswith(
+                    "/static/images/default-banner.svg"
+                )
+            )
+
+        invalid_banner = self.client.post(
+            "/profile/edit",
+            data={
+                "display_name": "Alice",
+                "bio": "Banner test",
+                "profile_banner": (BytesIO(b"not-an-image"), "banner.txt"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+        self.assertIn(b"Profile banner must be a png, jpg, jpeg, gif, or webp file.", invalid_banner.data)
+
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
         self.assertEqual(summary["users"], 4)

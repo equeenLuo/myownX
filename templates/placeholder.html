@@ -90,10 +90,12 @@
     {% elif request.path == '/discover' %}
         <!-- Mobile Search Input (Hidden on PC) -->
         <div class="p-3 d-md-none border-bottom">
-            <div class="search-wrapper">
-                <i class="bi bi-search search-icon"></i>
-                <input type="text" class="search-input" placeholder="Search trends & users">
-            </div>
+            <form action="{{ url_for('search') }}" method="GET" class="w-100 m-0">
+                <div class="search-wrapper">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="search" name="q" class="search-input" placeholder="Search trends &amp; users" value="{{ search_query|default('') }}">
+                </div>
+            </form>
         </div>
 
         <div class="p-3 border-bottom">
@@ -421,7 +423,7 @@
                                 <button type="submit" class="w-100 text-start border-0 bg-transparent p-2 rounded chat-item-btn d-flex align-items-center gap-2 mb-2" style="transition: background-color 0.2s;">
                                     <img src="{{ user_avatar_url(message_user) }}" class="chat-avatar" alt="Avatar" style="width: 40px; height: 40px;">
                                     <div class="chat-detail">
-                                        <div class="chat-name text-white" style="font-size: 0.95rem;">{{ message_user.display_name or message_user.username }}</div>
+                                        <div class="chat-name text-dark fw-bold" style="font-size: 0.95rem;">{{ message_user.display_name or message_user.username }}</div>
                                         <div class="chat-message-preview">@{{ message_user.username }}</div>
                                     </div>
                                 </button>
@@ -489,6 +491,9 @@
     <!-- 5. Profile Page -->
     {% elif request.path == '/profile' %}
         {% include "_profile.html" %}
+        {% if current_user.is_authenticated %}
+            {% include "_profile_edit.html" %}
+        {% endif %}
 
     <!-- 6. Profile Edit Page (Transition Compatibility) -->
     {% elif request.path == '/profile/edit' %}
@@ -498,7 +503,7 @@
     {% elif request.path == '/settings' %}
         <div class="settings-page p-3">
             <div class="settings-section mb-4">
-                <h3 class="settings-section-title mb-3" style="font-size: 1.25rem; font-weight: 800;">Privacy & Safety</h3>
+                <h3 class="settings-section-title mb-3" style="font-size: 1.25rem; font-weight: 800;">Privacy &amp; Safety</h3>
                 {% set privacy_settings = settings if (settings is defined and settings) else user_settings(current_user) %}
                 <form action="{{ url_for('settings') }}" method="POST" class="p-3 border rounded-4 bg-light bg-opacity-50">
                     <div class="setting-row d-flex justify-content-between align-items-center mb-3">

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Search Sticky Header -->
+<div class="d-flex align-items-center px-3 py-2 border-bottom sticky-top bg-white bg-opacity-75 backdrop-blur" style="backdrop-filter: blur(12px); z-index: 5;">
+    <a href="javascript:history.back()" class="text-dark me-3"><i class="bi bi-arrow-left fs-5"></i></a>
+    
+    <form action="{{ url_for('search') }}" method="GET" class="flex-grow-1 m-0">
+        <div class="search-wrapper position-relative">
+            <i class="bi bi-search search-icon" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--myownx-muted); font-size: 0.95rem;"></i>
+            <input type="search" name="q" class="search-input py-2 ps-5 pe-3" placeholder="Search" value="{{ search_query|default('') }}" style="width: 100%; height: 38px; background-color: var(--myownx-light); border: none; border-radius: 9999px; font-size: 0.95rem; outline: none;" required>
+        </div>
+    </form>
+
+    <div class="dropdown ms-2">
+        <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">
+            <i class="bi bi-three-dots fs-5"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Search Results Tabs Navigation -->
+<div class="d-flex border-bottom text-center bg-white">
+    <div id="tab-posts" class="flex-grow-1 py-3 fw-bold search-tab-item active" style="cursor: pointer; color: var(--myownx-text); font-size: 0.95rem; position: relative;">
+        Posts
+        <div class="active-indicator" style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; border-radius: 9999px; background-color: var(--myownx-theme);"></div>
+    </div>
+    <div id="tab-people" class="flex-grow-1 py-3 fw-bold search-tab-item" style="cursor: pointer; color: var(--myownx-muted); font-size: 0.95rem; position: relative;">
+        People
+        <div class="active-indicator d-none" style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; border-radius: 9999px; background-color: var(--myownx-theme);"></div>
+    </div>
+</div>
+
+{% if search_error %}
+    <div class="p-4 text-center text-danger">
+        {{ search_error }}
+    </div>
+{% elif not searched %}
+    <div class="p-5 text-center text-muted">
+        <div class="mb-3"><i class="bi bi-search" style="font-size: 2.5rem; color: var(--myownx-muted);"></i></div>
+        <h5 class="fw-bold">Try searching for people or posts.</h5>
+    </div>
+{% else %}
+    <!-- ==================== Posts Results Container ==================== -->
+    <div id="search-posts-container" class="search-results-section">
+        {% if posts %}
+            <div class="post-feed">
+                {% for post in posts %}
+                    {% set display_post = post.repost_source if post.repost_source else post %}
+                    <article class="post-card" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
+                        <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
+                            <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
+                        </a>
+                        <div class="post-card-body">
+                            {% if post.repost_source %}
+                                <div class="text-muted small mb-1">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                    {{ post.author.display_name or post.author.username }} reposted
+                                </div>
+                            {% endif %}
+                            <div class="post-card-header d-flex align-items-center">
+                                <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none d-flex align-items-center gap-1 min-width-0">
+                                    <span class="post-author-name text-dark fw-bold text-truncate" style="max-width: 140px;">{{ display_post.author.display_name or display_post.author.username }}</span>
+                                    <span class="post-author-handle text-muted text-truncate" style="max-width: 100px;">@{{ display_post.author.username }}</span>
+                                </a>
+                                <span class="post-dot">·</span>
+                                <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d %H:%M') if (display_post.created_at and display_post.created_at.strftime) else '' }}</span>
+                                
+                                <div class="dropdown ms-auto">
+                                    <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-4 p-1" style="background-color: #15181c; min-width: 150px;">
+                                        {% if current_user.is_authenticated and current_user.id == post.user_id %}
+                                            <li>
+                                                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                                    <button type="submit" class="dropdown-item text-danger py-2 rounded-3 fw-bold d-flex align-items-center gap-2">
+                                                        <i class="bi bi-trash"></i> Delete Post
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <button class="dropdown-item text-white py-2 rounded-3 d-flex align-items-center gap-2" onclick="alert('Report submitted. Thank you!')">
+                                                    <i class="bi bi-flag"></i> Report Post
+                                                </button>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                            {% if display_post.content %}
+                                <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
+                            {% endif %}
+                            <!-- Post Images Grid -->
+                            {% set media_urls = post_media_urls(display_post) %}
+                            {% if media_urls and display_post.media_type == 'image' %}
+                                <div class="post-card-media post-card-media-grid post-card-media-count-{{ media_urls|length }} mt-2">
+                                    {% for media_url in media_urls[:4] %}
+                                        <img src="{{ media_url }}" alt="Post image {{ loop.index }}" class="img-fluid" style="cursor: pointer;" onclick="viewFullImage('{{ media_url }}')">
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% set comments = post_comments(display_post) %}
+                            {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
+                            <div class="post-card-footer">
+                                <a href="{{ url_for('post_detail', post_id=display_post.id) }}" class="post-action action-comment text-decoration-none">
+                                    <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
+                                </a>
+                                <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
+                                    <button class="post-action action-repost {% if has_reposted(display_post) %}reposted{% endif %}" type="submit" aria-label="Repost">
+                                        <i class="bi bi-arrow-repeat"></i><span class="repost-count">{{ repost_count(display_post) }}</span>
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('toggle_like', post_id=display_post.id) }}" method="POST" class="post-action-form">
+                                    <button class="post-action action-like {% if liked %}liked{% endif %}" type="submit" aria-label="{% if liked %}Unlike post{% else %}Like post{% endif %}">
+                                        <i class="bi {% if liked %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i><span class="like-count">{{ like_count(display_post) }}</span>
+                                    </button>
+                                </form>
+                                <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText('{{ url_for('post_detail', post_id=display_post.id, _external=True) }}'); alert('Post link copied to clipboard!');"><i class="bi bi-share"></i></button>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-5 text-center text-muted border-bottom">
+                No matching posts found for "{{ search_query }}".
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ==================== People Results Container ==================== -->
+    <div id="search-people-container" class="search-results-section d-none">
+        {% if users %}
+            <div class="people-feed">
+                {% for search_user in users %}
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background-color: var(--myownx-bg); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.02)'" onmouseout="this.style.backgroundColor='var(--myownx-bg)'">
+                        <div class="d-flex align-items-start gap-3 flex-grow-1 min-width-0">
+                            <a href="{{ url_for('user_profile', user_id=search_user.id) }}">
+                                <img src="{{ user_avatar_url(search_user) }}" class="follow-user-avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                            </a>
+                            <div class="min-width-0">
+                                <a href="{{ url_for('user_profile', user_id=search_user.id) }}" class="text-decoration-none d-flex flex-column leading-tight">
+                                    <span class="fw-bold text-dark" style="font-size: 0.95rem;">
+                                        {{ search_user.display_name or search_user.username }}
+                                        {% if search_user.settings and search_user.settings.is_private %}
+                                            <i class="bi bi-lock-fill text-muted small ms-1"></i>
+                                        {% endif %}
+                                    </span>
+                                    <span class="text-muted small">@{{ search_user.username }}</span>
+                                </a>
+                                {% if search_user.bio %}
+                                    <p class="mb-0 mt-1 text-dark" style="font-size: 0.9rem; word-break: break-word;">{{ search_user.bio }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="ms-3 flex-shrink-0">
+                            {% if current_user and current_user.is_authenticated %}
+                                {% if search_user.id == current_user.id %}
+                                    <span class="badge bg-light text-dark rounded-pill px-3 py-2 fw-bold" style="font-size: 0.8rem; border: 1px solid var(--myownx-border);">You</span>
+                                {% elif is_following(search_user) %}
+                                    <form action="{{ url_for('unfollow_user', user_id=search_user.id) }}" method="POST" class="m-0">
+                                        <button type="submit" class="btn-following"><span class="btn-following-text">Following</span></button>
+                                    </form>
+                                {% else %}
+                                    <form action="{{ url_for('follow_user', user_id=search_user.id) }}" method="POST" class="m-0">
+                                        <button type="submit" class="btn-follow">Follow</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('login') }}" class="btn-follow text-decoration-none">Follow</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-5 text-center text-muted border-bottom">
+                No matching people found for "{{ search_query }}".
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Javascript Tab Toggle Controller -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabPosts = document.getElementById('tab-posts');
+    const tabPeople = document.getElementById('tab-people');
+    const postsContainer = document.getElementById('search-posts-container');
+    const peopleContainer = document.getElementById('search-people-container');
+
+    if (tabPosts && tabPeople && postsContainer && peopleContainer) {
+        tabPosts.addEventListener('click', function() {
+            // Activate Posts Tab
+            tabPosts.classList.add('active');
+            tabPosts.style.color = 'var(--myownx-text)';
+            tabPosts.querySelector('.active-indicator').classList.remove('d-none');
+
+            // Deactivate People Tab
+            tabPeople.classList.remove('active');
+            tabPeople.style.color = 'var(--myownx-muted)';
+            tabPeople.querySelector('.active-indicator').classList.add('d-none');
+
+            // Toggle displays
+            postsContainer.classList.remove('d-none');
+            peopleContainer.classList.add('d-none');
+        });
+
+        tabPeople.addEventListener('click', function() {
+            // Activate People Tab
+            tabPeople.classList.add('active');
+            tabPeople.style.color = 'var(--myownx-text)';
+            tabPeople.querySelector('.active-indicator').classList.remove('d-none');
+
+            // Deactivate Posts Tab
+            tabPosts.classList.remove('active');
+            tabPosts.style.color = 'var(--myownx-muted)';
+            tabPosts.querySelector('.active-indicator').classList.add('d-none');
+
+            // Toggle displays
+            peopleContainer.classList.remove('d-none');
+            postsContainer.classList.add('d-none');
+        });
+    }
+});
+</script>
+{% endblock %}
