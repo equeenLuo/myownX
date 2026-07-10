@@ -13,7 +13,7 @@
             {% endif %}
             <a href="{{ url_for('post_detail', post_id=reply.id) }}" class="reply-post-content">{{ reply.content }}</a>
             <div class="reply-post-actions">
-                <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#reply-form-{{ reply.id }}" aria-label="Reply"><i class="bi bi-chat"></i><span>0</span></button>
+                <button class="post-action action-comment" type="button" data-open-reply-modal="true" aria-label="Reply"><i class="bi bi-chat"></i><span>0</span></button>
                 <form action="{{ url_for('create_repost', post_id=reply.id) }}" method="POST" class="post-action-form"><button class="post-action action-repost" type="submit" aria-label="Repost"><i class="bi bi-arrow-repeat"></i><span>0</span></button></form>
                 <form action="{{ url_for('toggle_like', post_id=reply.id) }}" method="POST" class="post-action-form"><button class="post-action action-like" type="submit" aria-label="Like reply"><i class="bi bi-heart"></i><span>0</span></button></form>
                 <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText('{{ url_for('post_detail', post_id=reply.id, _external=True) }}');" aria-label="Share"><i class="bi bi-share"></i></button>

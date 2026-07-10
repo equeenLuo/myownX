@@ -329,6 +329,42 @@
         </div>
     {% endif %}
 
+    {% if current_user.is_authenticated %}
+    <!-- ==================== Global Reply Dialog ==================== -->
+    <div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content reply-modal-content">
+                <div class="modal-header border-0 px-3 py-2">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h2 class="visually-hidden" id="replyModalLabel">Reply</h2>
+                </div>
+                <div class="modal-body pt-0">
+                    <div class="reply-modal-source">
+                        <img id="reply-modal-source-avatar" class="reply-modal-source-avatar" alt="Post author avatar">
+                        <div class="reply-modal-source-body">
+                            <div class="reply-modal-source-meta">
+                                <strong id="reply-modal-source-name"></strong><span id="reply-modal-source-handle"></span>
+                            </div>
+                            <p id="reply-modal-source-content" class="reply-modal-source-content"></p>
+                            <div class="replying-to mb-3">Replying to <span id="reply-modal-target-handle"></span></div>
+                        </div>
+                    </div>
+                    <form id="reply-modal-form" method="POST" class="reply-modal-form">
+                        <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Your avatar">
+                        <div class="flex-grow-1">
+                            <textarea id="reply-modal-textarea" name="content" class="post-creator-textarea" rows="4" maxlength="280" placeholder="Post your reply" required></textarea>
+                            <div class="reply-modal-toolbar">
+                                <span class="text-muted small">Everyone can reply</span>
+                                <button type="submit" class="btn-post-submit" id="reply-modal-submit" disabled>Reply</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- ==================== Global Post Dialog (Modal) ==================== -->
     <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

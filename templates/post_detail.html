@@ -21,7 +21,7 @@
             {% endif %}
             <a href="{{ url_for('post_detail', post_id=reply.id) }}" class="reply-post-content">{{ reply.content }}</a>
             <div class="reply-post-actions">
-                <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#reply-form-{{ reply.id }}" aria-expanded="false" aria-controls="reply-form-{{ reply.id }}" aria-label="Reply">
+                <button class="post-action action-comment" type="button" data-open-reply-modal="true" aria-label="Reply">
                     <i class="bi bi-chat"></i><span>{{ reply_count(reply) }}</span>
                 </button>
                 <form action="{{ url_for('create_repost', post_id=reply.id) }}" method="POST" class="post-action-form">
@@ -115,7 +115,7 @@
         </div>
 
         <div class="post-detail-actions">
-            <button class="post-action action-comment" type="button" onclick="document.getElementById('reply-textarea').focus();" aria-label="Reply">
+            <button class="post-action action-comment" type="button" data-open-reply-modal="true" aria-label="Reply">
                 <i class="bi bi-chat"></i><span>{{ reply_count(display_post) }}</span>
             </button>
             <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
@@ -133,16 +133,6 @@
             </button>
         </div>
     </article>
-
-    {% if current_user.is_authenticated %}
-        <div class="reply-editor">
-            <img src="{{ user_avatar_url(current_user) }}" class="reply-editor-avatar" alt="Avatar">
-            <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST">
-                <textarea id="reply-textarea" name="content" placeholder="Post your reply" rows="2" maxlength="280" required></textarea>
-                <div><button type="submit" class="btn btn-primary rounded-pill">Reply</button></div>
-            </form>
-        </div>
-    {% endif %}
 
     <section class="post-replies-section" aria-label="Replies">
         {% for reply in replies %}

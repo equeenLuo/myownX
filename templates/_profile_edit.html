@@ -45,30 +45,23 @@
                     <div class="position-relative w-100 profile-cover-upload-container" style="height: 200px; overflow: hidden; background-color: rgb(207, 217, 222);">
                         <img src="{{ user_banner_url(current_user) }}" id="banner-preview" class="w-100 h-100" style="object-fit: cover;" alt="Banner Cover">
                         
-                        <!-- Overlay buttons centered -->
-                        <div class="position-absolute top-50 start-50 translate-middle d-flex gap-3" style="z-index: 3;">
-                            <!-- Change Banner -->
-                            <label for="profile_banner" class="bg-dark bg-opacity-60 text-white rounded-circle d-flex align-items-center justify-content-center" style="cursor: pointer; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,0.25); transition: background-color 0.2s;" title="Upload banner">
-                                <i class="bi bi-camera fs-5"></i>
+                        <!-- Banner actions -->
+                        <div class="position-absolute top-50 start-50 translate-middle d-flex gap-2" style="z-index: 3;">
+                            <label for="profile_banner" class="bg-dark bg-opacity-75 text-white rounded-pill d-flex align-items-center justify-content-center gap-2 px-3" style="cursor: pointer; height: 36px; border: 1px solid rgba(255,255,255,0.25); transition: background-color 0.2s;" title="Change banner">
+                                <i class="bi bi-camera"></i><span class="fw-semibold small">Change</span>
                             </label>
                             <input type="file" id="profile_banner" name="profile_banner" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" class="d-none" onchange="previewBanner(this)">
-                            
-                            <!-- Dummy magic button -->
-                            <div class="bg-dark bg-opacity-60 text-white rounded-circle d-flex align-items-center justify-content-center" style="cursor: not-allowed; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,0.25);" title="AI magic (disabled)">
-                                <i class="bi bi-magic fs-5"></i>
-                            </div>
-                            
-                            <!-- Dummy remove button -->
-                            <div class="bg-dark bg-opacity-60 text-white rounded-circle d-flex align-items-center justify-content-center" style="cursor: not-allowed; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,0.25);" title="Remove banner (disabled)">
-                                <i class="bi bi-x-lg fs-5"></i>
-                            </div>
+                            <input type="hidden" id="remove_profile_banner" name="remove_profile_banner" value="">
+                            <button type="button" id="remove-banner-button" class="btn bg-dark bg-opacity-75 text-white rounded-pill d-flex align-items-center justify-content-center gap-2 px-3" style="height: 36px; border: 1px solid rgba(255,255,255,0.25);" onclick="removeBanner()">
+                                <i class="bi bi-trash3"></i><span class="fw-semibold small">Delete</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Profile Avatar Upload Area -->
-                    <div class="profile-avatar-upload-wrapper px-3" style="margin-top: -48px; margin-bottom: 16px; position: relative;">
+                    <div class="profile-avatar-upload-wrapper px-3" style="margin-top: -48px; margin-bottom: 16px; position: relative; z-index: 4;">
                         <div class="position-relative d-inline-block" style="z-index: 4;">
-                            <img src="{{ user_avatar_url(current_user) }}" id="avatar-preview" class="profile-avatar border border-4 border-white" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background-color: #ffffff;" alt="Avatar">
+                            <img src="{{ user_avatar_url(current_user) }}" id="avatar-preview" class="profile-avatar border border-4 border-white" style="width: 96px; height: 96px; margin-top: 0; border-radius: 50%; object-fit: cover; background-color: #ffffff;" alt="Avatar">
                             
                             <!-- Camera icon centered -->
                             <label for="profile_picture" class="position-absolute top-50 start-50 translate-middle bg-dark bg-opacity-50 text-white rounded-circle d-flex align-items-center justify-content-center" style="cursor: pointer; width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.25); transition: background-color 0.2s;" title="Upload avatar">
@@ -76,15 +69,6 @@
                             </label>
                             <input type="file" id="profile_picture" name="profile_picture" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" class="d-none" onchange="previewImage(this)">
                         </div>
-                    </div>
-
-                    <!-- Imagine Promo Banner -->
-                    <div class="d-flex align-items-center justify-content-between p-3 mb-4" style="background-color: rgb(247, 249, 249); border-radius: 12px; margin: 0 16px;">
-                        <div style="line-height: 1.35;">
-                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">Edit your photo with Imagine</div>
-                            <div class="text-muted" style="font-size: 0.8rem;">Customize yourself in seconds</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-light border rounded-pill px-3 fw-bold" style="font-size: 0.85rem; height: 32px; background: #ffffff; color: var(--myownx-text);">Edit Photo</button>
                     </div>
 
                     <!-- Input Fields -->
@@ -138,6 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof previewBanner !== 'function') {
         window.previewBanner = function(input) {
             if (input.files && input.files[0]) {
+                const removeInput = document.getElementById('remove_profile_banner');
+                if (removeInput) removeInput.value = '';
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const preview = document.getElementById('banner-preview');
@@ -146,6 +132,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.readAsDataURL(input.files[0]);
             }
         }
+    }
+
+    window.removeBanner = function() {
+        const removeInput = document.getElementById('remove_profile_banner');
+        const bannerInput = document.getElementById('profile_banner');
+        const preview = document.getElementById('banner-preview');
+        if (removeInput) removeInput.value = 'on';
+        if (bannerInput) bannerInput.value = '';
+        if (preview) preview.src = '{{ user_banner_url(None) }}';
     }
 
     // Bio Char Limit counter

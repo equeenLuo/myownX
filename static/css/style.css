@@ -2179,18 +2179,19 @@ body {
 }
 
 .post-creator-box {
+    gap: 8px;
     padding: 12px 16px 8px;
     border-bottom: 1px solid var(--myownx-border);
 }
 
 .post-creator-avatar {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
 }
 
 .post-creator-textarea {
     min-height: 80px;
-    padding: 6px 10px;
+    padding: 6px 0;
     font-size: 1.22rem;
     line-height: 1.4;
 }
@@ -2198,8 +2199,8 @@ body {
 .post-creator-toolbar {
     min-height: 46px;
     margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid var(--myownx-border);
+    padding-top: 4px;
+    border-top: 0;
 }
 
 .post-creator-action-btn {
@@ -2305,18 +2306,122 @@ body {
     align-items: center;
 }
 
-.post-card-footer > .post-action:first-child {
+.post-card-footer > .post-action {
     justify-self: start;
 }
 
 .post-card-footer > .post-action:last-child {
     justify-self: end;
+    transform: translateX(26px);
 }
 
 .post-card-footer .post-action-form {
     display: flex;
     width: 100%;
     justify-content: center;
+}
+
+.post-creator-submit-tools {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.post-char-progress {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+}
+
+.post-char-progress svg {
+    width: 22px;
+    height: 22px;
+    transform: rotate(-90deg);
+}
+
+.post-char-progress circle {
+    fill: none;
+    stroke-width: 1.6;
+}
+
+.post-char-progress-track {
+    stroke: #cfd9de;
+}
+
+.post-char-progress-value {
+    stroke: var(--myownx-theme);
+    stroke-dasharray: 37.7;
+    stroke-dashoffset: 37.7;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.15s ease, stroke 0.15s ease;
+}
+
+.post-char-progress.is-near-limit .post-char-progress-value {
+    stroke: #f59e0b;
+}
+
+.post-char-progress.is-over-limit .post-char-progress-value {
+    stroke: #f4212e;
+}
+
+.emoji-picker-wrap {
+    position: relative;
+}
+
+.emoji-menu {
+    position: absolute;
+    z-index: 12;
+    bottom: calc(100% + 8px);
+    left: -8px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    width: 276px;
+    padding: 8px;
+    border: 1px solid var(--myownx-border);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 20, 25, 0.18);
+}
+
+.emoji-menu-item {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.emoji-menu-item:hover,
+.emoji-menu-item:focus-visible {
+    background: var(--myownx-theme-light);
+    outline: none;
+}
+
+.post-card-repost > a:first-child {
+    margin-top: 20px;
+}
+
+.repost-context {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 20px;
+    margin-bottom: 1px;
+    color: var(--myownx-muted);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.repost-context i {
+    font-size: 15px;
 }
 
 .post-action {
@@ -2465,13 +2570,15 @@ body {
 
 .profile-tab.active::after {
     position: absolute;
-    right: 22%;
+    right: 0;
     bottom: 0;
-    left: 22%;
+    left: 0;
+    width: auto;
     height: 4px;
     border-radius: 999px;
     background: var(--myownx-theme);
     content: "";
+    transform: none;
 }
 
 .post-detail-container {
@@ -3600,4 +3707,75 @@ body {
     outline: none !important;
     border: none !important;
     box-shadow: none !important;
+}
+
+/* Reply composer modal */
+.post-card-repost > .d-flex .post-card-avatar {
+    margin-top: 20px;
+}
+
+.reply-modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 16px;
+}
+
+.reply-modal-source {
+    display: flex;
+    gap: 12px;
+    padding: 4px 4px 12px;
+}
+
+.reply-modal-source-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.reply-modal-source-body {
+    min-width: 0;
+    flex: 1;
+    padding-left: 14px;
+    border-left: 2px solid #cfd9de;
+}
+
+.reply-modal-source-meta {
+    display: flex;
+    gap: 5px;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 20px;
+}
+
+.reply-modal-source-meta span {
+    overflow: hidden;
+    color: var(--myownx-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reply-modal-source-content {
+    display: -webkit-box;
+    margin: 2px 0 8px;
+    overflow: hidden;
+    color: var(--myownx-text);
+    font-size: 15px;
+    line-height: 20px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.reply-modal-form {
+    display: flex;
+    gap: 12px;
+    padding: 4px;
+}
+
+.reply-modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    border-top: 1px solid var(--myownx-border);
 }

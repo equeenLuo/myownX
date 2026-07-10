@@ -227,7 +227,7 @@ def create_app(config_class=Config):
     def hot_posts(limit=5):
         sorted_posts = (
             Post.query.outerjoin(Like, Like.post_id == Post.id)
-            .filter(Post.repost_from_id.is_(None), Post.reply_to_post_id.is_(None))
+            .filter(Post.repost_from_id.is_(None))
             .group_by(Post.id)
             .order_by(func.count(Like.id).desc(), Post.created_at.desc(), Post.id.desc())
             .limit(limit * 4)
@@ -583,7 +583,36 @@ def create_app(config_class=Config):
         return jsonify({"app": "myownX", "status": "ok"})
 
     def latest_posts():
-        posts = Post.query.filter(Post.reply_to_post_id.is_(None)).order_by(Post.created_at.desc()).all()
+        posts = Post.query.order_by(Post.created_at.desc()).all()
+        return [post for post in posts if can_view_post(post)]
+
+    def requested_profile_tab():
+        tab = request.args.get("tab", "posts").lower()
+        return tab if tab in {"posts", "replies", "likes"} else "posts"
+
+    def profile_tab_posts(user, tab):
+        if tab == "likes":
+            liked_post_ids = db.session.query(Like.post_id).filter_by(user_id=user.id)
+            posts = (
+                Post.query.filter(Post.id.in_(liked_post_ids))
+                .order_by(Post.created_at.desc(), Post.id.desc())
+                .all()
+            )
+        elif tab == "replies":
+            posts = (
+                Post.query.filter_by(user_id=user.id)
+                .filter(Post.reply_to_post_id.is_not(None))
+                .order_by(Post.created_at.desc(), Post.id.desc())
+                .all()
+            )
+        else:
+            posts = (
+                Post.query.filter_by(user_id=user.id)
+                .filter(Post.reply_to_post_id.is_(None))
+                .order_by(Post.created_at.desc(), Post.id.desc())
+                .all()
+            )
+
         return [post for post in posts if can_view_post(post)]
 
     def placeholder(page_title, **context):
@@ -998,14 +1027,9 @@ def create_app(config_class=Config):
     @app.get("/profile")
     @login_required
     def profile():
-        posts = (
-            Post.query.filter_by(user_id=current_user.id)
-            .filter(Post.reply_to_post_id.is_(None))
-            .order_by(Post.created_at.desc())
-            .all()
-        )
-        user_posts = [post for post in posts if can_view_post(post)]
-        return placeholder("个人主页", user=current_user, posts=user_posts)
+        profile_tab = requested_profile_tab()
+        user_posts = profile_tab_posts(current_user, profile_tab)
+        return placeholder("个人主页", user=current_user, posts=user_posts, profile_tab=profile_tab)
 
     @app.get("/users/<int:user_id>")
     @login_required
@@ -1019,18 +1043,19 @@ def create_app(config_class=Config):
         if user.id == current_user.id:
             return redirect(url_for("profile"))
 
+        profile_tab = requested_profile_tab()
         if can_view_user_posts(user):
-            posts = (
-                Post.query.filter_by(user_id=user.id)
-                .filter(Post.reply_to_post_id.is_(None))
-                .order_by(Post.created_at.desc())
-                .all()
-            )
-            user_posts = [post for post in posts if can_view_post(post)]
+            user_posts = profile_tab_posts(user, profile_tab)
         else:
             user_posts = []
 
-        return render_template("profile.html", page_title=user.display_name, user=user, posts=user_posts)
+        return render_template(
+            "profile.html",
+            page_title=user.display_name,
+            user=user,
+            posts=user_posts,
+            profile_tab=profile_tab,
+        )
 
     @app.get("/users/<int:user_id>/followers")
     @login_required
@@ -1153,6 +1178,7 @@ def create_app(config_class=Config):
 
             avatar_file = request.files.get("profile_picture")
             banner_file = request.files.get("profile_banner")
+            remove_profile_banner = request.form.get("remove_profile_banner") == "on"
 
             if banner_file and banner_file.filename:
                 original_filename = secure_filename(banner_file.filename)
@@ -1179,6 +1205,8 @@ def create_app(config_class=Config):
                 filename = f"banner_{current_user.id}_{uuid4().hex}.{extension}"
                 banner_file.save(banner_upload_dir / filename)
                 current_user.profile_banner_path = f"uploads/banners/{filename}"
+            elif remove_profile_banner:
+                current_user.profile_banner_path = None
 
             current_user.display_name = display_name
             current_user.bio = bio or None

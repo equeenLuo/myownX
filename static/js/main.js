@@ -49,7 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewGrid = document.getElementById(config.previewGridId);
         const clearBtn = document.getElementById(config.clearBtnId);
         const submitBtn = document.getElementById(config.submitBtnId);
+        const charCounter = document.getElementById(config.charCounterId);
+        const charProgress = document.getElementById(config.charProgressId);
+        const emojiButton = document.getElementById(config.emojiButtonId);
+        const emojiMenu = document.getElementById(config.emojiMenuId);
         const maxFiles = config.maxFiles || 4;
+        const maxCharacters = Number(textarea && textarea.maxLength) || 280;
 
         if (!form || !textarea || !fileInput || !submitBtn) return;
 
@@ -58,6 +63,66 @@ document.addEventListener('DOMContentLoaded', function() {
             const hasText = textarea.value.trim().length > 0;
             const hasImage = fileInput.files && fileInput.files.length > 0;
             submitBtn.disabled = (!hasText && !hasImage);
+            updateCharacterProgress();
+        }
+
+        function updateCharacterProgress() {
+            if (!charCounter && !charProgress) return;
+
+            const charactersUsed = textarea.value.length;
+            const progress = Math.min(charactersUsed / maxCharacters, 1);
+            const label = `${charactersUsed} of ${maxCharacters} characters used`;
+
+            if (charCounter) charCounter.textContent = label;
+            if (!charProgress) return;
+
+            const progressValue = charProgress.querySelector('.post-char-progress-value');
+            if (progressValue) {
+                progressValue.style.strokeDashoffset = String(37.7 * (1 - progress));
+            }
+            charProgress.setAttribute('aria-label', label);
+            charProgress.classList.toggle('is-near-limit', charactersUsed >= maxCharacters * 0.8 && charactersUsed < maxCharacters);
+            charProgress.classList.toggle('is-over-limit', charactersUsed >= maxCharacters);
+        }
+
+        function insertEmoji(emoji) {
+            const start = textarea.selectionStart ?? textarea.value.length;
+            const end = textarea.selectionEnd ?? textarea.value.length;
+            textarea.value = `${textarea.value.slice(0, start)}${emoji}${textarea.value.slice(end)}`;
+            textarea.focus();
+            textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        if (emojiButton && emojiMenu) {
+            emojiButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const willOpen = emojiMenu.classList.contains('d-none');
+                emojiMenu.classList.toggle('d-none', !willOpen);
+                emojiButton.setAttribute('aria-expanded', String(willOpen));
+            });
+
+            emojiMenu.addEventListener('click', function(event) {
+                const emojiOption = event.target.closest('[data-emoji]');
+                if (!emojiOption) return;
+                insertEmoji(emojiOption.dataset.emoji);
+                emojiMenu.classList.add('d-none');
+                emojiButton.setAttribute('aria-expanded', 'false');
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!emojiMenu.contains(event.target) && !emojiButton.contains(event.target)) {
+                    emojiMenu.classList.add('d-none');
+                    emojiButton.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            textarea.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    emojiMenu.classList.add('d-none');
+                    emojiButton.setAttribute('aria-expanded', 'false');
+                }
+            });
         }
 
         // 1. 点击媒体图标触发文件选择
@@ -177,6 +242,10 @@ document.addEventListener('DOMContentLoaded', function() {
         previewGridId: 'pc-image-preview-grid',
         clearBtnId: null,
         submitBtnId: 'pc-post-submit',
+        charCounterId: 'pc-char-counter',
+        charProgressId: 'pc-char-progress',
+        emojiButtonId: 'pc-emoji-btn',
+        emojiMenuId: 'pc-emoji-menu',
         maxFiles: 4
     });
 
@@ -236,6 +305,57 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Escape' && !lightbox.classList.contains('d-none')) {
                 window.closeLightbox();
             }
+        });
+    }
+
+    // ==================== Reply composer modal ====================
+    const replyModalElement = document.getElementById('replyModal');
+    const replyModalForm = document.getElementById('reply-modal-form');
+    const replyModalTextarea = document.getElementById('reply-modal-textarea');
+    const replyModalSubmit = document.getElementById('reply-modal-submit');
+
+    if (replyModalElement && replyModalForm && replyModalTextarea && replyModalSubmit) {
+        function updateReplyModalSubmit() {
+            replyModalSubmit.disabled = !replyModalTextarea.value.trim();
+        }
+
+        document.body.addEventListener('click', function(event) {
+            const trigger = event.target.closest('[data-open-reply-modal]');
+            if (!trigger) return;
+
+            const card = trigger.closest('.post-card, .post-detail-card, .reply-post');
+            const postId = card && card.dataset.postId;
+            if (!postId) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const avatar = card.querySelector('.post-card-avatar, .post-detail-avatar, .reply-post-avatar');
+            const author = card.querySelector('.post-author-name, .post-detail-author, .reply-post-author');
+            const handle = card.querySelector('.post-author-handle, .post-detail-author-row span, .reply-post-meta span');
+            const content = card.querySelector('.post-card-text, .post-detail-text, .reply-post-content');
+
+            document.getElementById('reply-modal-source-avatar').src = avatar ? avatar.src : '';
+            document.getElementById('reply-modal-source-name').textContent = author ? author.textContent.trim() : '';
+            document.getElementById('reply-modal-source-handle').textContent = handle ? handle.textContent.trim() : '';
+            document.getElementById('reply-modal-source-content').textContent = content ? content.textContent.trim() : '';
+            document.getElementById('reply-modal-target-handle').textContent = handle ? handle.textContent.trim() : '';
+            replyModalForm.action = `/posts/${postId}/comment`;
+            replyModalTextarea.value = '';
+            updateReplyModalSubmit();
+
+            const replyModal = bootstrap.Modal.getOrCreateInstance(replyModalElement);
+            replyModal.show();
+            replyModalElement.addEventListener('shown.bs.modal', function focusReplyTextarea() {
+                replyModalTextarea.focus();
+                replyModalElement.removeEventListener('shown.bs.modal', focusReplyTextarea);
+            });
+        });
+
+        replyModalTextarea.addEventListener('input', updateReplyModalSubmit);
+        replyModalElement.addEventListener('hidden.bs.modal', function() {
+            replyModalForm.reset();
+            updateReplyModalSubmit();
         });
     }
 
@@ -382,6 +502,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.reset();
                 updateReplyCount(payload.parent_post_id, payload.reply_count);
                 appendReply(form, payload);
+                if (form.id === 'reply-modal-form') {
+                    bootstrap.Modal.getInstance(document.getElementById('replyModal'))?.hide();
+                }
             } else if (payload.action === 'follow') {
                 updateFollowAction(payload.user_id, payload.following);
             } else if (payload.action === 'delete') {

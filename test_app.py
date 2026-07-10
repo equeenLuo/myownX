@@ -335,6 +335,12 @@ class MyownXFlowTests(unittest.TestCase):
             reply = Post.query.filter_by(user_id=bob_id, reply_to_post_id=post_id).one()
             reply_id = reply.id
 
+        feed_with_reply = self.client.get("/feed")
+        self.assertIn(f'data-post-id="{reply_id}"'.encode(), feed_with_reply.data)
+        self.assertIn(b"Replying to", feed_with_reply.data)
+        explore_with_reply = self.client.get("/discover")
+        self.assertIn(f'data-post-id="{reply_id}"'.encode(), explore_with_reply.data)
+
         self.client.post(f"/posts/{reply_id}/like", follow_redirects=True)
         self.client.post(f"/posts/{reply_id}/repost", follow_redirects=True)
 
@@ -506,6 +512,19 @@ class MyownXFlowTests(unittest.TestCase):
                 )
             )
 
+        reset_banner = self.client.post(
+            "/profile/edit",
+            data={
+                "display_name": "Alice",
+                "bio": "Banner test",
+                "remove_profile_banner": "on",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(reset_banner.status_code, 302)
+        with self.app.app_context():
+            self.assertIsNone(db.session.get(User, user_id).profile_banner_path)
+
         invalid_banner = self.client.post(
             "/profile/edit",
             data={
@@ -517,6 +536,46 @@ class MyownXFlowTests(unittest.TestCase):
             follow_redirects=True,
         )
         self.assertIn(b"Profile banner must be a png, jpg, jpeg, gif, or webp file.", invalid_banner.data)
+
+    def test_profile_tabs_show_posts_replies_and_likes(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob")
+
+        with self.app.app_context():
+            alice_post = Post(user_id=alice_id, content="Alice standalone post")
+            bob_post = Post(user_id=bob_id, content="Bob liked post")
+            db.session.add_all([alice_post, bob_post])
+            db.session.flush()
+            alice_reply = Post(
+                user_id=alice_id,
+                content="Alice reply post",
+                reply_to_post_id=alice_post.id,
+            )
+            db.session.add_all([alice_reply, Like(user_id=alice_id, post_id=bob_post.id)])
+            db.session.commit()
+            alice_post_id = alice_post.id
+            alice_reply_id = alice_reply.id
+            bob_post_id = bob_post.id
+
+        self.login("alice")
+
+        posts_page = self.client.get("/profile?tab=posts")
+        self.assertIn(b"Alice standalone post", posts_page.data)
+        self.assertIn(f'data-post-id="{alice_post_id}"'.encode(), posts_page.data)
+        self.assertNotIn(f'data-post-id="{alice_reply_id}"'.encode(), posts_page.data)
+        self.assertNotIn(f'data-post-id="{bob_post_id}"'.encode(), posts_page.data)
+
+        replies_page = self.client.get("/profile?tab=replies")
+        self.assertIn(b"Alice reply post", replies_page.data)
+        self.assertIn(b"Replying to", replies_page.data)
+        self.assertIn(f'data-post-id="{alice_reply_id}"'.encode(), replies_page.data)
+        self.assertNotIn(f'data-post-id="{alice_post_id}"'.encode(), replies_page.data)
+
+        likes_page = self.client.get("/profile?tab=likes")
+        self.assertIn(b"Bob liked post", likes_page.data)
+        self.assertIn(f'data-post-id="{bob_post_id}"'.encode(), likes_page.data)
+        self.assertNotIn(f'data-post-id="{alice_reply_id}"'.encode(), likes_page.data)
+        self.assertIn(b"profile-tab text-decoration-none active", likes_page.data)
 
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)

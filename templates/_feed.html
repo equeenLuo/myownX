@@ -13,11 +13,21 @@
                 <div class="post-creator-actions">
                     <button class="post-creator-action-btn" id="pc-media-btn" title="Media" type="button"><i class="bi bi-image"></i></button>
                     <input type="file" id="pc-post-image-input" name="images" accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp" multiple class="d-none">
-                    <button class="post-creator-action-btn" title="Emoji" type="button"><i class="bi bi-emoji-smile"></i></button>
+                    <div class="emoji-picker-wrap">
+                        <button class="post-creator-action-btn" id="pc-emoji-btn" title="Emoji" type="button" aria-expanded="false" aria-controls="pc-emoji-menu"><i class="bi bi-emoji-smile"></i></button>
+                        <div class="emoji-menu d-none" id="pc-emoji-menu" role="dialog" aria-label="Choose an emoji">
+                            {% for emoji in ['😀', '😂', '🥹', '😍', '😎', '🤔', '😭', '🎉', '🔥', '❤️', '👍', '👀', '🙏', '💯', '✨', '🚀'] %}
+                                <button type="button" class="emoji-menu-item" data-emoji="{{ emoji }}" aria-label="Add {{ emoji }}">{{ emoji }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <button class="post-creator-action-btn" title="Location" type="button"><i class="bi bi-geo-alt"></i></button>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="text-muted small" id="pc-char-counter">0/280</span>
+                <div class="post-creator-submit-tools">
+                    <div class="post-char-progress" id="pc-char-progress" role="img" aria-label="0 of 280 characters used">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><circle class="post-char-progress-track" cx="8" cy="8" r="6"></circle><circle class="post-char-progress-value" cx="8" cy="8" r="6"></circle></svg>
+                        <span class="visually-hidden" id="pc-char-counter">0 of 280 characters used</span>
+                    </div>
                     <button class="btn-post-submit" id="pc-post-submit" type="submit">Post</button>
                 </div>
             </div>
@@ -30,13 +40,13 @@
     {% if posts %}
         {% for post in posts %}
             {% set display_post = post.repost_source if post.repost_source else post %}
-            <article class="post-card" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
+            <article class="post-card {% if post.repost_source %}post-card-repost{% endif %}" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
                 <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="post-card-avatar-link text-decoration-none">
                     <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
                 </a>
                 <div class="post-card-body">
                     {% if post.repost_source %}
-                        <div class="text-muted small mb-1">
+                        <div class="repost-context">
                             <i class="bi bi-arrow-repeat"></i>
                             {{ post.author.display_name or post.author.username }} reposted
                         </div>
@@ -72,6 +82,9 @@
                             </ul>
                         </div>
                     </div>
+                    {% if post.reply_to_post %}
+                        <div class="replying-to">Replying to <a href="{{ url_for('user_profile', user_id=post.reply_to_post.author.id) }}">@{{ post.reply_to_post.author.username }}</a></div>
+                    {% endif %}
                     {% if display_post.content %}
                         <p class="post-card-text" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
                     {% endif %}
@@ -87,7 +100,7 @@
                     {% set comments = post_comments(display_post) %}
                     {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
                     <div class="post-card-footer">
-                        <button class="post-action action-comment" type="button" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}" aria-expanded="false" aria-controls="comments-{{ post.id }}">
+                        <button class="post-action action-comment" type="button" data-open-reply-modal="true" aria-label="Reply">
                             <i class="bi bi-chat"></i><span>{{ comments|length }}</span>
                         </button>
                         <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form">
@@ -102,7 +115,7 @@
                         </form>
                         <button class="post-action action-share" type="button" aria-label="Share"><i class="bi bi-share"></i></button>
                     </div>
-                    <div class="post-comments collapse" id="comments-{{ post.id }}">
+                    <div class="post-comments d-none" id="comments-{{ post.id }}">
                         <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form">
                             <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
                             <button type="submit" class="btn btn-sm btn-primary rounded-pill">Reply</button>

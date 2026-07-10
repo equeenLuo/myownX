@@ -148,14 +148,14 @@
             {% if hot_posts %}
                 {% for post in hot_posts %}
                     {% set display_post = post.repost_source if post.repost_source else post %}
-                    <article class="post-card p-3 border-bottom" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
+                    <article class="post-card {% if post.repost_source %}post-card-repost{% endif %} p-3 border-bottom" data-post-id="{{ display_post.id }}" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
                         <div class="d-flex gap-3">
                             <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
                                 <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
                             </a>
                             <div class="post-card-body flex-grow-1 min-width-0">
                                 {% if post.repost_source %}
-                                    <div class="text-muted small mb-1">
+                                    <div class="repost-context">
                                         <i class="bi bi-arrow-repeat"></i>
                                         {{ post.author.display_name or post.author.username }} reposted
                                     </div>
@@ -191,6 +191,9 @@
                                         </ul>
                                     </div>
                                 </div>
+                                {% if post.reply_to_post %}
+                                    <div class="replying-to">Replying to <a href="{{ url_for('user_profile', user_id=post.reply_to_post.author.id) }}">@{{ post.reply_to_post.author.username }}</a></div>
+                                {% endif %}
                                 {% if display_post.content %}
                                     <p class="post-card-text mt-2" style="white-space: pre-wrap; word-break: break-word;">{{ display_post.content }}</p>
                                 {% endif %}
@@ -205,8 +208,8 @@
                                 {% endif %}
                                 {% set comments = post_comments(display_post) %}
                                 {% set liked = current_user and current_user.is_authenticated and has_liked(display_post) %}
-                                <div class="post-card-footer mt-3 d-flex justify-content-between text-muted" style="max-width: 425px;">
-                                    <button class="post-action action-comment border-0 bg-transparent text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#comments-discover-{{ post.id }}" aria-expanded="false" aria-controls="comments-discover-{{ post.id }}">
+                                <div class="post-card-footer mt-3 text-muted">
+                                    <button class="post-action action-comment border-0 bg-transparent text-muted" type="button" data-open-reply-modal="true" aria-label="Reply">
                                         <i class="bi bi-chat"></i> <span class="ms-1">{{ comments|length }}</span>
                                     </button>
                                     <form action="{{ url_for('create_repost', post_id=display_post.id) }}" method="POST" class="post-action-form m-0">
@@ -221,7 +224,7 @@
                                     </form>
                                     <button class="post-action action-share border-0 bg-transparent text-muted" type="button" onclick="navigator.clipboard.writeText('{{ url_for('user_profile', user_id=display_post.author.id, _external=True) }}');"><i class="bi bi-share"></i></button>
                                 </div>
-                                <div class="post-comments collapse" id="comments-discover-{{ post.id }}">
+                                <div class="post-comments d-none" id="comments-discover-{{ post.id }}">
                                     <form action="{{ url_for('create_comment', post_id=display_post.id) }}" method="POST" class="post-comment-form mt-2 d-flex gap-2">
                                         <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a comment" maxlength="280" required>
                                         <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3" style="background-color: var(--myownx-theme); border: none; font-weight: 700;">Reply</button>
