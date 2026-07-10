@@ -350,6 +350,16 @@
         <div class="messages-layout">
             <!-- Left Conversational Lists -->
             <div class="messages-list-pane">
+                <div class="messages-list-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h2>Chat</h2>
+                        <div class="messages-header-actions" aria-hidden="true">
+                            <i class="bi bi-gear"></i>
+                            <i class="bi bi-envelope-plus"></i>
+                        </div>
+                    </div>
+                    <div class="messages-search"><i class="bi bi-search"></i><span>Search</span></div>
+                </div>
                 {% if conversations %}
                     {% for conversation_item in conversations %}
                         {% set other_user = conversation_other_user(conversation_item) %}
