@@ -164,7 +164,7 @@
                                         <span class="post-author-handle text-muted text-truncate" style="max-width: 100px;">@{{ display_post.author.username }}</span>
                                     </a>
                                     <span class="post-dot text-muted">·</span>
-                                    <span class="post-time text-muted">{{ display_post.created_at.strftime('%Y-%m-%d %H:%M') if (display_post.created_at and display_post.created_at.strftime) else '' }}</span>
+                                    <span class="post-time text-muted">{{ relative_time(display_post.created_at) }}</span>
                                     <!-- Post Settings / Delete Option Dropdown Menu -->
                                     <div class="dropdown ms-auto">
                                         <button class="btn btn-link text-muted p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none; box-shadow: none;">

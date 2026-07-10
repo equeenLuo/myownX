@@ -942,6 +942,15 @@ a:hover {
     font-size: 0.9rem;
 }
 
+.profile-stat-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.profile-stat-link:hover .stat-label {
+    text-decoration: underline;
+}
+
 .stat-num {
     font-weight: 700;
     color: var(--myownx-text);
@@ -949,6 +958,106 @@ a:hover {
 
 .stat-label {
     color: var(--myownx-muted);
+}
+
+.user-list-header {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--myownx-border);
+    display: flex;
+    gap: 28px;
+    min-height: 53px;
+    padding: 8px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.user-list-header h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.user-list-header span,
+.user-list-handle {
+    color: var(--myownx-muted);
+    font-size: 0.9rem;
+}
+
+.user-list-back {
+    color: var(--myownx-text);
+    font-size: 1.25rem;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.user-list-item {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--myownx-border);
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.user-list-avatar {
+    border-radius: 50%;
+    height: 48px;
+    object-fit: cover;
+    width: 48px;
+}
+
+.user-list-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-list-name {
+    color: var(--myownx-text);
+    font-weight: 700;
+    overflow: hidden;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-list-info p {
+    color: var(--myownx-text);
+    font-size: 0.9rem;
+    line-height: 1.35;
+    margin: 6px 0 0;
+}
+
+.user-list-follow,
+.user-list-following {
+    border-radius: 999px;
+    font-weight: 700;
+    line-height: 1;
+    margin-top: 2px;
+    min-width: 82px;
+    padding: 8px 14px;
+}
+
+.user-list-follow {
+    background: var(--myownx-text);
+    border: 1px solid var(--myownx-text);
+    color: #fff;
+}
+
+.user-list-following {
+    background: #fff;
+    border: 1px solid var(--myownx-border);
+    color: var(--myownx-text);
+}
+
+.user-list-empty {
+    color: var(--myownx-muted);
+    padding: 48px 16px;
+    text-align: center;
 }
 
 .profile-nav-tabs {

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -103,6 +104,33 @@ def create_app(config_class=Config):
         if not user:
             return 0
         return Follow.query.filter_by(follower_id=user.id).count()
+
+    def relative_time(value):
+        if not value:
+            return ""
+
+        if value.tzinfo is not None:
+            now = datetime.now(timezone.utc)
+            timestamp = value.astimezone(timezone.utc)
+        else:
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            timestamp = value
+
+        elapsed_seconds = max(0, int((now - timestamp).total_seconds()))
+        if elapsed_seconds < 60:
+            return f"{elapsed_seconds}s"
+        if elapsed_seconds < 60 * 60:
+            return f"{elapsed_seconds // 60}m"
+        if elapsed_seconds < 24 * 60 * 60:
+            return f"{elapsed_seconds // (60 * 60)}h"
+        return f"{elapsed_seconds // (24 * 60 * 60)}d"
+
+    def post_detail_time(value):
+        if not value:
+            return ""
+
+        hour = value.strftime("%I").lstrip("0") or "0"
+        return f"{hour}:{value.strftime('%M %p')} · {value.strftime('%b')} {value.day}, {value.year}"
 
     def is_following(user):
         if not user or not current_user or not current_user.is_authenticated:
@@ -394,6 +422,8 @@ def create_app(config_class=Config):
             "post_media_urls": post_media_urls,
             "follower_count": follower_count,
             "following_count": following_count,
+            "relative_time": relative_time,
+            "post_detail_time": post_detail_time,
             "is_following": is_following,
             "user_settings": user_settings,
             "can_view_user_posts": can_view_user_posts,
@@ -848,6 +878,48 @@ def create_app(config_class=Config):
             user_posts = []
 
         return render_template("profile.html", page_title=user.display_name, user=user, posts=user_posts)
+
+    @app.get("/users/<int:user_id>/followers")
+    @login_required
+    def user_followers(user_id):
+        user = db.session.get(User, user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("discover"))
+
+        follows = (
+            Follow.query.filter_by(following_id=user.id)
+            .order_by(Follow.created_at.desc(), Follow.id.desc())
+            .all()
+        )
+        return render_template(
+            "user_list.html",
+            page_title=f"{user.display_name or user.username} Followers",
+            profile_user=user,
+            list_title="Followers",
+            users=[follow.follower for follow in follows],
+        )
+
+    @app.get("/users/<int:user_id>/following")
+    @login_required
+    def user_following(user_id):
+        user = db.session.get(User, user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("discover"))
+
+        follows = (
+            Follow.query.filter_by(follower_id=user.id)
+            .order_by(Follow.created_at.desc(), Follow.id.desc())
+            .all()
+        )
+        return render_template(
+            "user_list.html",
+            page_title=f"{user.display_name or user.username} Following",
+            profile_user=user,
+            list_title="Following",
+            users=[follow.following for follow in follows],
+        )
 
     @app.post("/users/<int:user_id>/follow")
     @login_required

@@ -67,8 +67,8 @@
 
     {% if not is_profile_private_shield %}
         <div class="profile-stats">
-            <span><strong class="stat-num">{{ following_count(profile_user) }}</strong> <span class="stat-label">Following</span></span>
-            <span><strong class="stat-num">{{ follower_count(profile_user) }}</strong> <span class="stat-label">Followers</span></span>
+            <a class="profile-stat-link" href="{{ url_for('user_following', user_id=profile_user.id) }}"><strong class="stat-num">{{ following_count(profile_user) }}</strong> <span class="stat-label">Following</span></a>
+            <a class="profile-stat-link" href="{{ url_for('user_followers', user_id=profile_user.id) }}"><strong class="stat-num">{{ follower_count(profile_user) }}</strong> <span class="stat-label">Followers</span></a>
         </div>
     {% endif %}
 </div>
@@ -110,7 +110,7 @@
                                 <span class="post-author-handle text-muted text-truncate" style="max-width: 100px;">@{{ display_post.author.username }}</span>
                             </a>
                             <span class="post-dot">·</span>
-                            <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d') if (display_post.created_at and display_post.created_at.strftime) else '2d ago' }}</span>
+                            <span class="post-time">{{ relative_time(display_post.created_at) }}</span>
                             <div class="dropdown ms-auto">
                                 <button class="btn btn-sm btn-link text-muted text-decoration-none p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Post actions">
                                     <i class="bi bi-three-dots"></i>

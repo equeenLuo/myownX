@@ -69,7 +69,10 @@
 
         <!-- Post Timestamp & Source -->
         <div class="post-detail-time text-muted small pb-3 border-bottom">
+            <span>{{ post_detail_time(display_post.created_at) }}</span>
+            {#
             <span>{{ display_post.created_at.strftime('%I:%M %p · %b %d, %Y') if (display_post.created_at and display_post.created_at.strftime) else '' }}</span>
+            #}
             <span class="mx-1">·</span>
             <span class="text-primary fw-bold">myownX for Web</span>
         </div>

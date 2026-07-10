@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="user-list-header">
+    <a href="{{ url_for('profile') if profile_user.id == current_user.id else url_for('user_profile', user_id=profile_user.id) }}" class="user-list-back" aria-label="Back">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+        <h1>{{ list_title }}</h1>
+        <span>@{{ profile_user.username }}</span>
+    </div>
+</header>
+
+<section class="user-list" aria-label="{{ list_title }}">
+    {% for listed_user in users %}
+        <article class="user-list-item">
+            <a href="{{ url_for('profile') if listed_user.id == current_user.id else url_for('user_profile', user_id=listed_user.id) }}">
+                <img src="{{ user_avatar_url(listed_user) }}" class="user-list-avatar" alt="{{ listed_user.display_name or listed_user.username }} avatar">
+            </a>
+            <div class="user-list-info">
+                <a href="{{ url_for('profile') if listed_user.id == current_user.id else url_for('user_profile', user_id=listed_user.id) }}" class="user-list-name">
+                    {{ listed_user.display_name or listed_user.username }}
+                </a>
+                <span class="user-list-handle">@{{ listed_user.username }}</span>
+                {% if listed_user.bio %}<p>{{ listed_user.bio }}</p>{% endif %}
+            </div>
+            {% if listed_user.id != current_user.id %}
+                {% if is_following(listed_user) %}
+                    <form action="{{ url_for('unfollow_user', user_id=listed_user.id) }}" method="POST">
+                        <button type="submit" class="user-list-following">Following</button>
+                    </form>
+                {% else %}
+                    <form action="{{ url_for('follow_user', user_id=listed_user.id) }}" method="POST">
+                        <button type="submit" class="user-list-follow">Follow</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </article>
+    {% else %}
+        <div class="user-list-empty">No users to show yet.</div>
+    {% endfor %}
+</section>
+{% endblock %}

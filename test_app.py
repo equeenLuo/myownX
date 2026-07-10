@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 
@@ -267,6 +268,52 @@ class MyownXFlowTests(unittest.TestCase):
         self.assertEqual(duplicate_response.headers["Location"], f"/messages/{conversation_id}")
         with self.app.app_context():
             self.assertEqual(Conversation.query.filter_by(conversation_type="group").count(), 1)
+
+    def test_profile_relationship_lists_and_post_timestamps(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob")
+        carol_id = self.create_user("carol", "Carol")
+
+        with self.app.app_context():
+            post = Post(
+                user_id=alice_id,
+                content="Timestamped post",
+                created_at=datetime(2026, 7, 9, 14, 53),
+            )
+            db.session.add_all(
+                [
+                    Follow(follower_id=bob_id, following_id=alice_id),
+                    Follow(follower_id=alice_id, following_id=carol_id),
+                    post,
+                ]
+            )
+            db.session.commit()
+            post_id = post.id
+
+            post.created_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2, hours=12)
+            db.session.commit()
+
+        self.login("alice")
+        profile_page = self.client.get("/profile")
+        self.assertIn(f"/users/{alice_id}/followers".encode(), profile_page.data)
+        self.assertIn(f"/users/{alice_id}/following".encode(), profile_page.data)
+
+        followers_page = self.client.get(f"/users/{alice_id}/followers")
+        following_page = self.client.get(f"/users/{alice_id}/following")
+        self.assertIn(b"Bob", followers_page.data)
+        self.assertIn(b"Carol", following_page.data)
+
+        feed_page = self.client.get("/feed")
+        self.assertIn(b"2d", feed_page.data)
+
+        with self.app.app_context():
+            post = db.session.get(Post, post_id)
+            post.created_at = datetime(2026, 7, 9, 14, 53)
+            db.session.commit()
+
+        detail_page = self.client.get(f"/posts/{post_id}")
+        self.assertIn(b"2:53 PM", detail_page.data)
+        self.assertIn(b"Jul 9, 2026", detail_page.data)
 
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
