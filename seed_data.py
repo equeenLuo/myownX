@@ -8,7 +8,7 @@ from models import Comment, Conversation, ConversationMember, Follow, Like, Mess
 
 
 DEMO_PASSWORD = "123456"
-DEMO_USERNAMES = ("alex", "maya", "noah", "zoe")
+DEMO_USERNAMES = ("alex01", "maya02", "noah03", "zoe04")
 
 
 def seed_demo_data(flask_app, reset=False):

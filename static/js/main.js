@@ -239,4 +239,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // ==================== Post Card Click Delegation ====================
+    document.body.addEventListener('click', function(e) {
+        const card = e.target.closest('.post-card');
+        if (!card) return;
+
+        // 隔离可交互元素：如果点击了 a、button、form、input、textarea、select、dropdown 或者是 lightbox 本身或分享操作，不跳转
+        if (e.target.closest('a, button, form, input, textarea, select, .dropdown, [data-bs-toggle], .post-action, .lightbox-overlay')) {
+            return;
+        }
+
+        const url = card.getAttribute('data-post-url');
+        if (url) {
+            window.location.href = url;
+        }
+    });
 });

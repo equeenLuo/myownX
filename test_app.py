@@ -102,6 +102,10 @@ class MyownXFlowTests(unittest.TestCase):
         self.client.post(f"/posts/{post_id}/like", follow_redirects=True)
         self.client.post(f"/posts/{post_id}/comment", data={"content": "Looks good"}, follow_redirects=True)
         self.client.post(f"/posts/{post_id}/repost", follow_redirects=True)
+        detail_page = self.client.get(f"/posts/{post_id}")
+        self.assertEqual(detail_page.status_code, 200)
+        self.assertIn(b"Alice demo post", detail_page.data)
+        self.assertIn(b"Looks good", detail_page.data)
         conversation_response = self.client.post(f"/messages/start/{alice_id}", follow_redirects=False)
         self.assertEqual(conversation_response.status_code, 302)
         conversation_id = int(conversation_response.headers["Location"].rstrip("/").split("/")[-1])
@@ -167,6 +171,8 @@ class MyownXFlowTests(unittest.TestCase):
         for path in ("/feed", "/discover", f"/users/{bob_id}", f"/users/{carol_id}"):
             self.assertNotIn(b"Bob private post", self.client.get(path).data)
 
+        self.assertEqual(self.client.get(f"/posts/{private_post_id}").status_code, 404)
+
         self.assertIn(
             b"Post not found.",
             self.client.post(f"/posts/{private_post_id}/like", follow_redirects=True).data,
@@ -182,6 +188,7 @@ class MyownXFlowTests(unittest.TestCase):
 
         self.assertIn(b"Bob private post", self.client.get("/feed").data)
         self.assertIn(b"Bob private post", self.client.get(f"/users/{carol_id}").data)
+        self.assertEqual(self.client.get(f"/posts/{private_post_id}").status_code, 200)
 
         with self.app.app_context():
             db.session.add(Follow(follower_id=bob_id, following_id=alice_id))

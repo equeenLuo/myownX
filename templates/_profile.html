@@ -93,8 +93,10 @@
         {% if posts %}
             {% for post in posts %}
                 {% set display_post = post.repost_source if post.repost_source else post %}
-                <article class="post-card">
-                    <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
+                <article class="post-card" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
+                    <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
+                        <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" alt="Avatar">
+                    </a>
                     <div class="post-card-body">
                         {% if post.repost_source %}
                             <div class="text-muted small mb-1">
@@ -102,9 +104,11 @@
                                 {{ post.author.display_name or post.author.username }} reposted
                             </div>
                         {% endif %}
-                        <div class="post-card-header">
-                            <span class="post-author-name">{{ display_post.author.display_name or display_post.author.username }}</span>
-                            <span class="post-author-handle">@{{ display_post.author.username }}</span>
+                        <div class="post-card-header d-flex align-items-center">
+                            <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none d-flex align-items-center gap-1 min-width-0">
+                                <span class="post-author-name text-dark fw-bold text-truncate" style="max-width: 140px;">{{ display_post.author.display_name or display_post.author.username }}</span>
+                                <span class="post-author-handle text-muted text-truncate" style="max-width: 100px;">@{{ display_post.author.username }}</span>
+                            </a>
                             <span class="post-dot">·</span>
                             <span class="post-time">{{ display_post.created_at.strftime('%Y-%m-%d') if (display_post.created_at and display_post.created_at.strftime) else '2d ago' }}</span>
                             <div class="dropdown ms-auto">

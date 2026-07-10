@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from sqlalchemy import func, inspect, text
 from werkzeug.utils import secure_filename
@@ -400,6 +400,20 @@ def create_app(config_class=Config):
     @login_required
     def feed():
         return placeholder("信息流", posts=latest_posts())
+
+    @app.get("/posts/<int:post_id>")
+    def post_detail(post_id):
+        post = db.session.get(Post, post_id)
+
+        if not post or not can_view_post(post):
+            abort(404)
+
+        return render_template(
+            "post_detail.html",
+            page_title="Post",
+            post=post,
+            comments=post_comments(post),
+        )
 
     @app.post("/posts/create")
     @login_required

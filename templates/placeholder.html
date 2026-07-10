@@ -146,9 +146,11 @@
             {% if hot_posts %}
                 {% for post in hot_posts %}
                     {% set display_post = post.repost_source if post.repost_source else post %}
-                    <article class="post-card p-3 border-bottom">
+                    <article class="post-card p-3 border-bottom" data-post-url="{{ url_for('post_detail', post_id=post.id) }}" style="cursor: pointer;">
                         <div class="d-flex gap-3">
-                            <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                            <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}" class="text-decoration-none">
+                                <img src="{{ user_avatar_url(display_post.author) }}" class="post-card-avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                            </a>
                             <div class="post-card-body flex-grow-1 min-width-0">
                                 {% if post.repost_source %}
                                     <div class="text-muted small mb-1">
