@@ -51,12 +51,20 @@ class Post(db.Model):
     media_path = db.Column(db.Text, nullable=True)
     media_type = db.Column(db.String(20), nullable=False, default="text")
     repost_from_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True, index=True)
+    reply_to_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True, index=True)
+    legacy_comment_id = db.Column(db.Integer, nullable=True, unique=True, index=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     author = db.relationship("User", back_populates="posts")
     likes = db.relationship("Like", back_populates="post", cascade="all, delete-orphan")
     comments = db.relationship("Comment", back_populates="post", cascade="all, delete-orphan")
-    repost_source = db.relationship("Post", remote_side=[id], backref="reposts")
+    repost_source = db.relationship("Post", remote_side=[id], foreign_keys=[repost_from_id], backref="reposts")
+    reply_to_post = db.relationship("Post", remote_side=[id], foreign_keys=[reply_to_post_id], backref="replies")
+
+    @property
+    def user(self):
+        """Keep legacy comment-oriented templates compatible with reply posts."""
+        return self.author
 
 
 class Follow(db.Model):

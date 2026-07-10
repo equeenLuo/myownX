@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 
 from app import app
-from models import Comment, Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, UserSettings, db
+from models import Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, UserSettings, db
 
 
 DEMO_PASSWORD = "123456"
@@ -118,16 +118,18 @@ def seed_demo_data(flask_app, reset=False):
                 Like(user_id=users["maya"].id, post_id=posts["alex"].id),
                 Like(user_id=users["zoe"].id, post_id=posts["alex"].id),
                 Like(user_id=users["alex"].id, post_id=posts["maya"].id),
-                Comment(
+                Post(
                     user_id=users["maya"].id,
-                    post_id=posts["alex"].id,
                     content="The notification flow is ready for the demo.",
+                    media_type="text",
+                    reply_to_post_id=posts["alex"].id,
                     created_at=now - timedelta(hours=5),
                 ),
-                Comment(
+                Post(
                     user_id=users["alex"].id,
-                    post_id=posts["maya"].id,
                     content="The mobile layout is looking good.",
+                    media_type="text",
+                    reply_to_post_id=posts["maya"].id,
                     created_at=now - timedelta(hours=3, minutes=30),
                 ),
             ]
@@ -203,7 +205,7 @@ def seed_demo_data(flask_app, reset=False):
 
         return {
             "users": len(users),
-            "posts": len(posts) + 1,
+            "posts": len(posts) + 3,
             "follows": 6,
             "notifications": 6,
             "messages": 2,

@@ -66,6 +66,10 @@ def ensure_schema_updates(app):
             post_columns = {column["name"] for column in inspector.get_columns("posts")}
             if "repost_from_id" not in post_columns:
                 connection.execute(text("ALTER TABLE posts ADD COLUMN repost_from_id INTEGER"))
+            if "reply_to_post_id" not in post_columns:
+                connection.execute(text("ALTER TABLE posts ADD COLUMN reply_to_post_id INTEGER"))
+            if "legacy_comment_id" not in post_columns:
+                connection.execute(text("ALTER TABLE posts ADD COLUMN legacy_comment_id INTEGER"))
 
         if "conversations" in table_names:
             conversation_columns = {column["name"] for column in inspector.get_columns("conversations")}
@@ -76,6 +80,23 @@ def ensure_schema_updates(app):
             notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
             if "conversation_id" not in notification_columns:
                 connection.execute(text("ALTER TABLE notifications ADD COLUMN conversation_id INTEGER"))
+
+    if "comments" in table_names:
+        migrated_comment_ids = db.session.query(Post.legacy_comment_id).filter(Post.legacy_comment_id.is_not(None))
+        legacy_comments = Comment.query.filter(~Comment.id.in_(migrated_comment_ids)).all()
+        for comment in legacy_comments:
+            db.session.add(
+                Post(
+                    user_id=comment.user_id,
+                    content=comment.content,
+                    media_type="text",
+                    reply_to_post_id=comment.post_id,
+                    legacy_comment_id=comment.id,
+                    created_at=comment.created_at,
+                )
+            )
+        if legacy_comments:
+            db.session.commit()
 
 
 def create_app(config_class=Config):
@@ -196,7 +217,7 @@ def create_app(config_class=Config):
     def hot_posts(limit=5):
         sorted_posts = (
             Post.query.outerjoin(Like, Like.post_id == Post.id)
-            .filter(Post.repost_from_id.is_(None))
+            .filter(Post.repost_from_id.is_(None), Post.reply_to_post_id.is_(None))
             .group_by(Post.id)
             .order_by(func.count(Like.id).desc(), Post.created_at.desc(), Post.id.desc())
             .limit(limit * 4)
@@ -221,7 +242,10 @@ def create_app(config_class=Config):
     def comment_count(post):
         if not post:
             return 0
-        return Comment.query.filter_by(post_id=post.id).count()
+        return Post.query.filter_by(reply_to_post_id=post.id).count()
+
+    def reply_count(post):
+        return comment_count(post)
 
     def has_liked(post):
         if not post or not current_user or not current_user.is_authenticated:
@@ -229,9 +253,24 @@ def create_app(config_class=Config):
         return Like.query.filter_by(user_id=current_user.id, post_id=post.id).first() is not None
 
     def post_comments(post):
+        return post_replies(post)
+
+    def post_replies(post):
         if not post:
             return []
-        return Comment.query.filter_by(post_id=post.id).order_by(Comment.created_at.asc()).all()
+        return Post.query.filter_by(reply_to_post_id=post.id).order_by(Post.created_at.asc(), Post.id.asc()).all()
+
+    def post_ancestors(post):
+        ancestors = []
+        visited_post_ids = set()
+        current_post = post.reply_to_post if post else None
+
+        while current_post and current_post.id not in visited_post_ids:
+            ancestors.append(current_post)
+            visited_post_ids.add(current_post.id)
+            current_post = current_post.reply_to_post
+
+        return list(reversed(ancestors))
 
     def repost_count(post):
         if not post:
@@ -434,8 +473,11 @@ def create_app(config_class=Config):
             "messageable_users": messageable_users,
             "like_count": like_count,
             "comment_count": comment_count,
+            "reply_count": reply_count,
             "has_liked": has_liked,
             "post_comments": post_comments,
+            "post_replies": post_replies,
+            "post_ancestors": post_ancestors,
             "repost_count": repost_count,
             "has_reposted": has_reposted,
             "conversation_last_message": conversation_last_message,
@@ -485,7 +527,7 @@ def create_app(config_class=Config):
         return jsonify({"app": "myownX", "status": "ok"})
 
     def latest_posts():
-        posts = Post.query.order_by(Post.created_at.desc()).all()
+        posts = Post.query.filter(Post.reply_to_post_id.is_(None)).order_by(Post.created_at.desc()).all()
         return [post for post in posts if can_view_post(post)]
 
     def placeholder(page_title, **context):
@@ -507,11 +549,16 @@ def create_app(config_class=Config):
         if not post or not can_view_post(post):
             abort(404)
 
+        reply_depth = request.args.get("reply_depth", default=2, type=int)
+        reply_depth = max(2, reply_depth)
+
         return render_template(
             "post_detail.html",
             page_title="Post",
             post=post,
-            comments=post_comments(post),
+            ancestors=post_ancestors(post),
+            replies=post_replies(post),
+            reply_depth=reply_depth,
         )
 
     @app.post("/posts/create")
@@ -638,11 +685,23 @@ def create_app(config_class=Config):
             flash("Comment content must be 280 characters or fewer.", "error")
             return redirect_back("feed")
 
-        comment = Comment(user_id=current_user.id, post_id=post.id, content=content)
-        db.session.add(comment)
+        reply = Post(
+            user_id=current_user.id,
+            content=content,
+            media_type="text",
+            reply_to_post_id=post.id,
+        )
+        db.session.add(reply)
         create_notification(post.user_id, "comment", post_id=post.id)
         db.session.commit()
-        flash("Comment added successfully.", "success")
+        flash("Reply posted successfully.", "success")
+
+        return_to_post_id = request.form.get("return_to_post_id", type=int)
+        if return_to_post_id:
+            return_to_post = db.session.get(Post, return_to_post_id)
+            if return_to_post and can_view_post(return_to_post):
+                return redirect(url_for("post_detail", post_id=return_to_post.id))
+
         return redirect_back("feed")
 
     @app.post("/posts/<int:post_id>/repost")
@@ -855,7 +914,12 @@ def create_app(config_class=Config):
     @app.get("/profile")
     @login_required
     def profile():
-        posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
+        posts = (
+            Post.query.filter_by(user_id=current_user.id)
+            .filter(Post.reply_to_post_id.is_(None))
+            .order_by(Post.created_at.desc())
+            .all()
+        )
         user_posts = [post for post in posts if can_view_post(post)]
         return placeholder("个人主页", user=current_user, posts=user_posts)
 
@@ -872,7 +936,12 @@ def create_app(config_class=Config):
             return redirect(url_for("profile"))
 
         if can_view_user_posts(user):
-            posts = Post.query.filter_by(user_id=user.id).order_by(Post.created_at.desc()).all()
+            posts = (
+                Post.query.filter_by(user_id=user.id)
+                .filter(Post.reply_to_post_id.is_(None))
+                .order_by(Post.created_at.desc())
+                .all()
+            )
             user_posts = [post for post in posts if can_view_post(post)]
         else:
             user_posts = []

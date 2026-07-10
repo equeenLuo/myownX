@@ -9,7 +9,7 @@ from pathlib import Path
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from models import Comment, Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, UserSettings, db
+from models import Conversation, ConversationMember, Follow, Like, Message, Notification, Post, User, UserSettings, db
 from seed_data import DEMO_USERNAMES, seed_demo_data
 
 
@@ -118,7 +118,7 @@ class MyownXFlowTests(unittest.TestCase):
 
         with self.app.app_context():
             self.assertEqual(Like.query.filter_by(user_id=bob_id, post_id=post_id).count(), 1)
-            self.assertEqual(Comment.query.filter_by(user_id=bob_id, post_id=post_id).count(), 1)
+            self.assertEqual(Post.query.filter_by(user_id=bob_id, reply_to_post_id=post_id).count(), 1)
             self.assertEqual(Post.query.filter_by(user_id=bob_id, repost_from_id=post_id).count(), 1)
             notification_types = {
                 notification.notification_type
@@ -315,10 +315,89 @@ class MyownXFlowTests(unittest.TestCase):
         self.assertIn(b"2:53 PM", detail_page.data)
         self.assertIn(b"Jul 9, 2026", detail_page.data)
 
+    def test_replies_are_interactive_posts_with_nested_replies(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob")
+
+        with self.app.app_context():
+            post = Post(user_id=alice_id, content="Original post")
+            db.session.add(post)
+            db.session.commit()
+            post_id = post.id
+
+        self.login("bob")
+        self.client.post(
+            f"/posts/{post_id}/comment",
+            data={"content": "First reply"},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            reply = Post.query.filter_by(user_id=bob_id, reply_to_post_id=post_id).one()
+            reply_id = reply.id
+
+        self.client.post(f"/posts/{reply_id}/like", follow_redirects=True)
+        self.client.post(f"/posts/{reply_id}/repost", follow_redirects=True)
+
+        self.logout()
+        self.login("alice")
+        nested_response = self.client.post(
+            f"/posts/{reply_id}/comment",
+            data={"content": "Nested reply", "return_to_post_id": str(reply_id)},
+            follow_redirects=False,
+        )
+        self.assertEqual(nested_response.headers["Location"], f"/posts/{reply_id}")
+
+        with self.app.app_context():
+            nested_reply = Post.query.filter_by(reply_to_post_id=reply_id).one()
+            nested_reply_id = nested_reply.id
+            self.assertEqual(Like.query.filter_by(user_id=bob_id, post_id=reply_id).count(), 1)
+            self.assertEqual(Post.query.filter_by(user_id=bob_id, repost_from_id=reply_id).count(), 1)
+
+        self.logout()
+        self.login("bob")
+        self.client.post(
+            f"/posts/{nested_reply_id}/comment",
+            data={"content": "Fourth reply"},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            fourth_reply = Post.query.filter_by(reply_to_post_id=nested_reply_id).one()
+            fourth_reply_id = fourth_reply.id
+
+        self.logout()
+        self.login("alice")
+        self.client.post(
+            f"/posts/{fourth_reply_id}/comment",
+            data={"content": "Fifth reply"},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            fifth_reply = Post.query.filter_by(reply_to_post_id=fourth_reply_id).one()
+
+        root_detail = self.client.get(f"/posts/{post_id}")
+        self.assertIn(b"First reply", root_detail.data)
+        self.assertIn(b"Nested reply", root_detail.data)
+        self.assertNotIn(b"Fourth reply", root_detail.data)
+        self.assertIn(b"Show more replies", root_detail.data)
+
+        expanded_root_detail = self.client.get(f"/posts/{post_id}?reply_depth=4")
+        self.assertIn(b"Fourth reply", expanded_root_detail.data)
+        self.assertIn(b"Fifth reply", expanded_root_detail.data)
+
+        deepest_detail = self.client.get(f"/posts/{fifth_reply.id}")
+        chain_positions = [
+            deepest_detail.data.find(text)
+            for text in (b"Original post", b"First reply", b"Nested reply", b"Fourth reply", b"Fifth reply")
+        ]
+        self.assertTrue(all(position >= 0 for position in chain_positions))
+        self.assertEqual(chain_positions, sorted(chain_positions))
+        self.assertIn(b"Replying to", deepest_detail.data)
+        self.assertIn(f'href="/users/{bob_id}">@bob</a>'.encode(), deepest_detail.data)
+
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
         self.assertEqual(summary["users"], 4)
-        self.assertEqual(summary["posts"], 5)
+        self.assertEqual(summary["posts"], 7)
         self.assertEqual(summary["follows"], 6)
         self.assertEqual(summary["notifications"], 6)
         self.assertEqual(summary["messages"], 2)
