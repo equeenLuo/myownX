@@ -28,15 +28,20 @@
     {% if current_user and current_user.is_authenticated and profile_user and profile_user.id == current_user.id %}
         <button type="button" class="btn-profile-edit" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit profile</button>
     {% elif current_user and current_user.is_authenticated and profile_user %}
-        {% if is_following(profile_user) %}
-            <form action="{{ url_for('unfollow_user', user_id=profile_user.id) }}" method="POST">
-                <button type="submit" class="btn btn-outline-light rounded-pill px-4 fw-bold btn-following" style="border: 1px solid var(--myownx-border);"><span class="btn-following-text">Following</span></button>
-            </form>
-        {% else %}
-            <form action="{{ url_for('follow_user', user_id=profile_user.id) }}" method="POST">
-                <button type="submit" class="btn btn-light text-dark rounded-pill px-4 fw-bold mb-2">Follow</button>
-            </form>
-        {% endif %}
+        <div class="profile-actions d-flex align-items-center gap-2">
+            {% if is_following(profile_user) %}
+                <form action="{{ url_for('unfollow_user', user_id=profile_user.id) }}" method="POST">
+                    <button type="submit" class="btn btn-outline-light rounded-pill px-4 fw-bold btn-following" style="border: 1px solid var(--myownx-border);"><span class="btn-following-text">Following</span></button>
+                </form>
+            {% else %}
+                <form action="{{ url_for('follow_user', user_id=profile_user.id) }}" method="POST">
+                    <button type="submit" class="btn btn-light text-dark rounded-pill px-4 fw-bold">Follow</button>
+                </form>
+            {% endif %}
+            {% if can_message_user(profile_user) %}
+                <a href="{{ url_for('start_conversation', user_id=profile_user.id) }}" class="btn btn-outline-dark rounded-pill px-3 fw-bold">Message</a>
+            {% endif %}
+        </div>
     {% else %}
         <a href="{{ url_for('login') }}" class="btn btn-dark rounded-pill px-4 fw-bold mb-2">Follow</a>
     {% endif %}

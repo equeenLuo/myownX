@@ -107,14 +107,21 @@ class MyownXFlowTests(unittest.TestCase):
         self.assertEqual(detail_page.status_code, 200)
         self.assertIn(b"Alice demo post", detail_page.data)
         self.assertIn(b"Looks good", detail_page.data)
-        conversation_response = self.client.post(f"/messages/start/{alice_id}", follow_redirects=False)
+        draft_response = self.client.get(f"/messages/start/{alice_id}")
+        self.assertEqual(draft_response.status_code, 200)
+        self.assertIn(b"Alice", draft_response.data)
+        self.assertIn(b"Start a new message...", draft_response.data)
+        self.assertNotIn(b"No messages in this conversation yet.", draft_response.data)
+        with self.app.app_context():
+            self.assertEqual(Conversation.query.filter_by(conversation_type="private").count(), 0)
+
+        conversation_response = self.client.post(
+            f"/messages/start/{alice_id}",
+            data={"content": "Ready for the classroom demo."},
+            follow_redirects=False,
+        )
         self.assertEqual(conversation_response.status_code, 302)
         conversation_id = int(conversation_response.headers["Location"].rstrip("/").split("/")[-1])
-        self.client.post(
-            f"/messages/{conversation_id}",
-            data={"content": "Ready for the classroom demo."},
-            follow_redirects=True,
-        )
 
         with self.app.app_context():
             self.assertEqual(Like.query.filter_by(user_id=bob_id, post_id=post_id).count(), 1)
@@ -195,10 +202,23 @@ class MyownXFlowTests(unittest.TestCase):
             db.session.add(Follow(follower_id=bob_id, following_id=alice_id))
             db.session.commit()
 
+        profile_page = self.client.get(f"/users/{bob_id}")
+        self.assertIn(f'/messages/start/{bob_id}'.encode(), profile_page.data)
+        draft_response = self.client.get(f"/messages/start/{bob_id}")
+        self.assertEqual(draft_response.status_code, 200)
+        with self.app.app_context():
+            self.assertEqual(Conversation.query.filter_by(conversation_type="private").count(), 0)
+
         self.assertEqual(
-            self.client.post(f"/messages/start/{bob_id}", follow_redirects=False).status_code,
+            self.client.post(
+                f"/messages/start/{bob_id}",
+                data={"content": "Hello Bob"},
+                follow_redirects=False,
+            ).status_code,
             302,
         )
+        with self.app.app_context():
+            self.assertEqual(Conversation.query.filter_by(conversation_type="private").count(), 1)
 
     def test_group_chat_creates_members_and_tracks_group_notifications(self):
         alice_id = self.create_user("alice", "Alice")

@@ -426,8 +426,13 @@ def create_app(config_class=Config):
             .filter(ConversationMember.user_id == current_user.id)
             .all()
         )
+        visible_conversations = [
+            conversation
+            for conversation in conversations
+            if conversation.conversation_type == "group" or conversation_last_message(conversation)
+        ]
         return sorted(
-            conversations,
+            visible_conversations,
             key=lambda conversation: (
                 conversation_last_message(conversation).created_at
                 if conversation_last_message(conversation)
@@ -861,7 +866,7 @@ def create_app(config_class=Config):
     def messages():
         return placeholder("私信", conversations=user_conversations(), users=messageable_users(limit=10))
 
-    @app.post("/messages/start/<int:user_id>")
+    @app.route("/messages/start/<int:user_id>", methods=["GET", "POST"])
     @login_required
     def start_conversation(user_id):
         user = db.session.get(User, user_id)
@@ -879,6 +884,25 @@ def create_app(config_class=Config):
             return redirect_back("messages")
 
         conversation = private_conversation_with(user.id)
+        if request.method == "GET":
+            if conversation:
+                return redirect(url_for("conversation", conversation_id=conversation.id))
+            return placeholder(
+                "私信",
+                conversations=user_conversations(),
+                users=messageable_users(limit=10),
+                draft_user=user,
+            )
+
+        content = request.form.get("content", "").strip()
+        if not content:
+            flash("Message content is required.", "error")
+            return redirect(url_for("start_conversation", user_id=user.id))
+
+        if len(content) > MAX_MESSAGE_LENGTH:
+            flash("Message content must be 1000 characters or fewer.", "error")
+            return redirect(url_for("start_conversation", user_id=user.id))
+
         if not conversation:
             conversation = Conversation(conversation_type="private")
             db.session.add(conversation)
@@ -889,8 +913,11 @@ def create_app(config_class=Config):
                     ConversationMember(conversation_id=conversation.id, user_id=user.id),
                 ]
             )
-            db.session.commit()
 
+        db.session.add(Message(conversation_id=conversation.id, sender_id=current_user.id, content=content))
+        create_notification(user.id, "message", conversation_id=conversation.id)
+        db.session.commit()
+        flash("Message sent.", "success")
         return redirect(url_for("conversation", conversation_id=conversation.id))
 
     @app.post("/messages/group")
