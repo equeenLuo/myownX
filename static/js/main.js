@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const dataTransfer = new DataTransfer();
             files.slice(0, maxFiles).forEach(file => dataTransfer.items.add(file));
             fileInput.files = dataTransfer.files;
-            alert(`You can upload up to ${maxFiles} images per post.`);
             return selectedFiles();
         }
 
@@ -253,6 +252,146 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = card.getAttribute('data-post-url');
         if (url) {
             window.location.href = url;
+        }
+    });
+
+    // Social actions submit their existing POST forms without navigating away.
+    function socialActionPath(form) {
+        const path = new URL(form.action, window.location.origin).pathname;
+        if (/^\/posts\/\d+\/(like|comment|repost|delete)$/.test(path)) return path;
+        if (/^\/users\/\d+\/(follow|unfollow)$/.test(path)) return path;
+        return null;
+    }
+
+    function actionFeedback(form, message) {
+        let feedback = form.querySelector('.action-feedback');
+        if (!feedback) {
+            feedback = document.createElement('span');
+            feedback.className = 'action-feedback';
+            form.appendChild(feedback);
+        }
+        feedback.textContent = message;
+        window.setTimeout(() => feedback.remove(), 2600);
+    }
+
+    function formsForPath(path) {
+        return Array.from(document.querySelectorAll('form')).filter(function(form) {
+            return new URL(form.action, window.location.origin).pathname === path;
+        });
+    }
+
+    function updatePostAction(postId, action, active, count) {
+        const path = `/posts/${postId}/${action}`;
+        formsForPath(path).forEach(function(form) {
+            const button = form.querySelector('button');
+            if (!button) return;
+
+            if (action === 'like') {
+                button.classList.toggle('liked', active);
+                button.setAttribute('aria-label', active ? 'Unlike post' : 'Like post');
+                const icon = button.querySelector('i');
+                if (icon) icon.className = active ? 'bi bi-heart-fill' : 'bi bi-heart';
+            }
+            if (action === 'repost') {
+                button.classList.toggle('reposted', active);
+            }
+
+            const countElement = button.querySelector('.like-count, .repost-count, span');
+            if (countElement) countElement.textContent = count;
+        });
+    }
+
+    function updateReplyCount(postId, count) {
+        document.querySelectorAll(`[data-post-id="${postId}"]`).forEach(function(card) {
+            const selector = card.classList.contains('reply-post')
+                ? '.reply-post-main .reply-post-actions .action-comment span'
+                : card.classList.contains('post-detail-card')
+                    ? '.post-detail-actions .action-comment span'
+                    : '.post-card-footer .action-comment span';
+            const countElement = card.querySelector(selector);
+            if (countElement) countElement.textContent = count;
+        });
+    }
+
+    function appendReply(form, payload) {
+        if (!payload.reply_html) return;
+
+        const parentCard = document.querySelector(`[data-post-id="${payload.parent_post_id}"]`);
+        let container = null;
+
+        if (parentCard && parentCard.classList.contains('reply-post')) {
+            container = parentCard.querySelector(':scope > .reply-post-children');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'reply-post-children';
+                parentCard.appendChild(container);
+            }
+        } else if (parentCard && parentCard.classList.contains('post-detail-card')) {
+            container = document.querySelector('.post-replies-section');
+        }
+
+        if (!container) container = form.closest('.post-comments');
+        if (container) container.insertAdjacentHTML('beforeend', payload.reply_html);
+    }
+
+    function updateFollowAction(userId, following) {
+        Array.from(document.querySelectorAll('form')).forEach(function(form) {
+            const path = new URL(form.action, window.location.origin).pathname;
+            if (!new RegExp(`^/users/${userId}/(follow|unfollow)$`).test(path)) return;
+
+            form.action = form.action.replace(/\/(follow|unfollow)$/, following ? '/unfollow' : '/follow');
+            const button = form.querySelector('button');
+            if (!button) return;
+            button.classList.toggle('btn-following', following);
+            button.classList.toggle('btn-follow', !following);
+            const label = button.querySelector('.btn-following-text');
+            if (label) label.textContent = following ? 'Following' : 'Follow';
+            else button.textContent = following ? 'Following' : 'Follow';
+        });
+    }
+
+    document.body.addEventListener('submit', async function(event) {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+
+        const path = socialActionPath(form);
+        if (!path) return;
+
+        event.preventDefault();
+        const submitButton = event.submitter || form.querySelector('button[type="submit"], button');
+        if (submitButton) submitButton.disabled = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.ok) {
+                actionFeedback(form, payload.message || 'Action could not be completed.');
+                return;
+            }
+
+            if (payload.action === 'like') {
+                updatePostAction(payload.post_id, 'like', payload.liked, payload.like_count);
+            } else if (payload.action === 'repost') {
+                updatePostAction(payload.post_id, 'repost', payload.reposted, payload.repost_count);
+            } else if (payload.action === 'reply') {
+                form.reset();
+                updateReplyCount(payload.parent_post_id, payload.reply_count);
+                appendReply(form, payload);
+            } else if (payload.action === 'follow') {
+                updateFollowAction(payload.user_id, payload.following);
+            } else if (payload.action === 'delete') {
+                const card = form.closest('.reply-post, .post-card, .post-detail-card');
+                if (card) card.remove();
+            }
+        } catch (error) {
+            actionFeedback(form, 'Network error. Please try again.');
+        } finally {
+            if (submitButton) submitButton.disabled = false;
         }
     });
 });

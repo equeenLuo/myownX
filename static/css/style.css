@@ -3259,3 +3259,16 @@ body {
         font-size: 19px !important;
     }
 }
+
+/* Social actions use local feedback instead of page-level success notices. */
+.alert-success {
+    display: none !important;
+}
+
+.action-feedback {
+    color: #b42318;
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 6px;
+    white-space: nowrap;
+}

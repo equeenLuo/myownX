@@ -394,6 +394,42 @@ class MyownXFlowTests(unittest.TestCase):
         self.assertIn(b"Replying to", deepest_detail.data)
         self.assertIn(f'href="/users/{bob_id}">@bob</a>'.encode(), deepest_detail.data)
 
+    def test_social_actions_return_local_json_without_success_flashes(self):
+        alice_id = self.create_user("alice", "Alice")
+        bob_id = self.create_user("bob", "Bob")
+
+        with self.app.app_context():
+            post = Post(user_id=alice_id, content="Async post")
+            db.session.add(post)
+            db.session.commit()
+            post_id = post.id
+
+        self.login("bob")
+        headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+
+        follow_response = self.client.post(f"/users/{alice_id}/follow", headers=headers)
+        self.assertEqual(follow_response.get_json()["following"], True)
+
+        like_response = self.client.post(f"/posts/{post_id}/like", headers=headers)
+        like_payload = like_response.get_json()
+        self.assertTrue(like_payload["liked"])
+        self.assertEqual(like_payload["like_count"], 1)
+
+        reply_response = self.client.post(
+            f"/posts/{post_id}/comment",
+            data={"content": "Async reply"},
+            headers=headers,
+        )
+        reply_payload = reply_response.get_json()
+        self.assertEqual(reply_payload["action"], "reply")
+        self.assertIn("Async reply", reply_payload["reply_html"])
+
+        with self.client.session_transaction() as session:
+            self.assertNotIn("_flashes", session)
+
+        with self.app.app_context():
+            self.assertEqual(Post.query.filter_by(user_id=bob_id, reply_to_post_id=post_id).count(), 1)
+
     def test_seed_data_creates_a_complete_demo_dataset(self):
         summary = seed_demo_data(self.app)
         self.assertEqual(summary["users"], 4)

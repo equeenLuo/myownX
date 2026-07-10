@@ -302,6 +302,20 @@ def create_app(config_class=Config):
             return redirect(target)
         return redirect(url_for(default_endpoint, **values))
 
+    def wants_async_response():
+        return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    def action_error(message, default_endpoint="feed", status_code=400, **values):
+        if wants_async_response():
+            return jsonify({"ok": False, "message": message}), status_code
+        flash(message, "error")
+        return redirect_back(default_endpoint, **values)
+
+    def action_success(payload, default_endpoint="feed", **values):
+        if wants_async_response():
+            return jsonify({"ok": True, **payload})
+        return redirect_back(default_endpoint, **values)
+
     def conversation_last_message(conversation):
         if not conversation:
             return None
@@ -616,7 +630,6 @@ def create_app(config_class=Config):
         )
         db.session.add(post)
         db.session.commit()
-        flash("Post created successfully.", "success")
         return redirect(url_for("feed"))
 
     @app.post("/posts/<int:post_id>/delete")
@@ -625,17 +638,14 @@ def create_app(config_class=Config):
         post = db.session.get(Post, post_id)
 
         if not post:
-            flash("Post not found.", "error")
-            return redirect(url_for("feed"))
+            return action_error("Post not found.", status_code=404)
 
         if post.user_id != current_user.id:
-            flash("You can only delete your own posts.", "error")
-            return redirect(url_for("feed"))
+            return action_error("You can only delete your own posts.", status_code=403)
 
         db.session.delete(post)
         db.session.commit()
-        flash("Post deleted successfully.", "success")
-        return redirect(url_for("feed"))
+        return action_success({"action": "delete", "post_id": post_id})
 
     @app.post("/posts/<int:post_id>/like")
     @login_required
@@ -643,8 +653,7 @@ def create_app(config_class=Config):
         post = db.session.get(Post, post_id)
 
         if not post or not can_view_post(post):
-            flash("Post not found.", "error")
-            return redirect_back("feed")
+            return action_error("Post not found.", status_code=404)
 
         existing_like = Like.query.filter_by(user_id=current_user.id, post_id=post.id).first()
         if existing_like:
@@ -656,15 +665,17 @@ def create_app(config_class=Config):
                 notification_type="like",
             ).delete()
             db.session.commit()
-            flash("Post unliked.", "success")
-            return redirect_back("feed")
+            return action_success(
+                {"action": "like", "post_id": post.id, "liked": False, "like_count": like_count(post)}
+            )
 
         like = Like(user_id=current_user.id, post_id=post.id)
         db.session.add(like)
         create_notification(post.user_id, "like", post_id=post.id)
         db.session.commit()
-        flash("Post liked.", "success")
-        return redirect_back("feed")
+        return action_success(
+            {"action": "like", "post_id": post.id, "liked": True, "like_count": like_count(post)}
+        )
 
     @app.post("/posts/<int:post_id>/comment")
     @login_required
@@ -672,18 +683,15 @@ def create_app(config_class=Config):
         post = db.session.get(Post, post_id)
 
         if not post or not can_view_post(post):
-            flash("Post not found.", "error")
-            return redirect_back("feed")
+            return action_error("Post not found.", status_code=404)
 
         content = request.form.get("content", "").strip()
 
         if not content:
-            flash("Comment content is required.", "error")
-            return redirect_back("feed")
+            return action_error("Comment content is required.")
 
         if len(content) > MAX_COMMENT_LENGTH:
-            flash("Comment content must be 280 characters or fewer.", "error")
-            return redirect_back("feed")
+            return action_error("Comment content must be 280 characters or fewer.")
 
         reply = Post(
             user_id=current_user.id,
@@ -694,7 +702,17 @@ def create_app(config_class=Config):
         db.session.add(reply)
         create_notification(post.user_id, "comment", post_id=post.id)
         db.session.commit()
-        flash("Reply posted successfully.", "success")
+
+        if wants_async_response():
+            return jsonify(
+                {
+                    "ok": True,
+                    "action": "reply",
+                    "parent_post_id": post.id,
+                    "reply_count": reply_count(post),
+                    "reply_html": render_template("_async_reply.html", reply=reply),
+                }
+            )
 
         return_to_post_id = request.form.get("return_to_post_id", type=int)
         if return_to_post_id:
@@ -710,8 +728,7 @@ def create_app(config_class=Config):
         post = db.session.get(Post, post_id)
 
         if not post or not can_view_post(post):
-            flash("Post not found.", "error")
-            return redirect_back("feed")
+            return action_error("Post not found.", status_code=404)
 
         source_post = post.repost_source if post.repost_source else post
         existing_repost = Post.query.filter_by(user_id=current_user.id, repost_from_id=source_post.id).first()
@@ -724,8 +741,9 @@ def create_app(config_class=Config):
                 notification_type="repost",
             ).delete()
             db.session.commit()
-            flash("Post unreposted.", "success")
-            return redirect_back("feed")
+            return action_success(
+                {"action": "repost", "post_id": source_post.id, "reposted": False, "repost_count": repost_count(source_post)}
+            )
 
         repost = Post(
             user_id=current_user.id,
@@ -736,8 +754,9 @@ def create_app(config_class=Config):
         db.session.add(repost)
         create_notification(source_post.user_id, "repost", post_id=source_post.id)
         db.session.commit()
-        flash("Post reposted successfully.", "success")
-        return redirect_back("feed")
+        return action_success(
+            {"action": "repost", "post_id": source_post.id, "reposted": True, "repost_count": repost_count(source_post)}
+        )
 
     @app.get("/discover")
     def discover():
@@ -996,24 +1015,28 @@ def create_app(config_class=Config):
         user = db.session.get(User, user_id)
 
         if not user:
-            flash("User not found.", "error")
-            return redirect_back("discover")
+            return action_error("User not found.", "discover", status_code=404)
 
         if user.id == current_user.id:
-            flash("You cannot follow yourself.", "error")
-            return redirect(url_for("profile"))
+            return action_error("You cannot follow yourself.", "profile")
 
         existing_follow = Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first()
         if existing_follow:
-            flash("You are already following this user.", "info")
-            return redirect_back("user_profile", user_id=user.id)
+            return action_success(
+                {"action": "follow", "user_id": user.id, "following": True, "follower_count": follower_count(user)},
+                "user_profile",
+                user_id=user.id,
+            )
 
         follow = Follow(follower_id=current_user.id, following_id=user.id)
         db.session.add(follow)
         create_notification(user.id, "follow")
         db.session.commit()
-        flash(f"You are now following {user.display_name or user.username}.", "success")
-        return redirect_back("user_profile", user_id=user.id)
+        return action_success(
+            {"action": "follow", "user_id": user.id, "following": True, "follower_count": follower_count(user)},
+            "user_profile",
+            user_id=user.id,
+        )
 
     @app.post("/users/<int:user_id>/unfollow")
     @login_required
@@ -1021,13 +1044,15 @@ def create_app(config_class=Config):
         user = db.session.get(User, user_id)
 
         if not user:
-            flash("User not found.", "error")
-            return redirect_back("discover")
+            return action_error("User not found.", "discover", status_code=404)
 
         follow = Follow.query.filter_by(follower_id=current_user.id, following_id=user.id).first()
         if not follow:
-            flash("You are not following this user.", "info")
-            return redirect_back("user_profile", user_id=user.id)
+            return action_success(
+                {"action": "follow", "user_id": user.id, "following": False, "follower_count": follower_count(user)},
+                "user_profile",
+                user_id=user.id,
+            )
 
         db.session.delete(follow)
         Notification.query.filter_by(
@@ -1036,8 +1061,11 @@ def create_app(config_class=Config):
             notification_type="follow",
         ).delete()
         db.session.commit()
-        flash(f"You unfollowed {user.display_name or user.username}.", "success")
-        return redirect_back("user_profile", user_id=user.id)
+        return action_success(
+            {"action": "follow", "user_id": user.id, "following": False, "follower_count": follower_count(user)},
+            "user_profile",
+            user_id=user.id,
+        )
 
     @app.route("/profile/edit", methods=["GET", "POST"])
     @login_required

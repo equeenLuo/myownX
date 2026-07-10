@@ -2,7 +2,7 @@
 
 {% macro render_reply(reply, depth=0, include_children=true) %}
     {% set reply_liked = current_user.is_authenticated and has_liked(reply) %}
-    <article class="reply-post {% if depth > 0 %}reply-post-nested{% endif %}">
+    <article class="reply-post {% if depth > 0 %}reply-post-nested{% endif %}" data-post-id="{{ reply.id }}">
         <div class="reply-post-main">
             <a href="{{ url_for('user_profile', user_id=reply.author.id) }}" class="reply-post-avatar-link">
                 <img src="{{ user_avatar_url(reply.author) }}" class="reply-post-avatar" alt="{{ reply.author.display_name or reply.author.username }} avatar">
@@ -34,7 +34,7 @@
                         <i class="bi {% if reply_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i><span>{{ like_count(reply) }}</span>
                     </button>
                 </form>
-                <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText('{{ url_for('post_detail', post_id=reply.id, _external=True) }}'); alert('Post link copied to clipboard!');" aria-label="Share">
+                <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText('{{ url_for('post_detail', post_id=reply.id, _external=True) }}');" aria-label="Share">
                     <i class="bi bi-share"></i>
                 </button>
             </div>
@@ -78,7 +78,7 @@
             {% endfor %}
         </section>
     {% endif %}
-    <article class="post-detail-card">
+    <article class="post-detail-card" data-post-id="{{ display_post.id }}">
         <div class="post-detail-author-row">
             <a href="{{ url_for('user_profile', user_id=display_post.author.id) }}">
                 <img src="{{ user_avatar_url(display_post.author) }}" class="post-detail-avatar" alt="{{ display_post.author.display_name or display_post.author.username }} avatar">
@@ -128,7 +128,7 @@
                     <i class="bi {% if liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i><span>{{ like_count(display_post) }}</span>
                 </button>
             </form>
-            <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText(window.location.href); alert('Post link copied to clipboard!');" aria-label="Share">
+            <button class="post-action action-share" type="button" onclick="navigator.clipboard.writeText(window.location.href);" aria-label="Share">
                 <i class="bi bi-share"></i>
             </button>
         </div>
