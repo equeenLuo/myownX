@@ -3,7 +3,7 @@
     <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Avatar">
     <div class="post-creator-form">
         <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" id="pc-post-form">
-            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="3" maxlength="280" id="pc-post-textarea"></textarea>
+            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="2" maxlength="280" id="pc-post-textarea"></textarea>
             <!-- Local Image Preview Grid -->
             <div id="pc-image-preview-wrapper" class="post-image-preview-wrapper position-relative d-none mt-2 mb-2">
                 <div id="pc-image-preview-grid" class="post-image-preview-grid"></div>

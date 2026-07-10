@@ -8,12 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Google Fonts Outfit & Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
     <!-- Custom Style -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.0">
 </head>
 <body>
 
@@ -119,16 +115,17 @@
             <i class="bi bi-plus-lg"></i>
         </button>
 
+        <!-- ==================== Desktop Global Brand Header ==================== -->
+        <header class="desktop-global-brand d-none d-md-flex">
+            <a href="{{ url_for('index') }}">myownX</a>
+        </header>
+
         <!-- ==================== PC Three-Column Page Container ==================== -->
         <div class="app-container">
 
             <!-- PC Left Sidebar Navigation -->
             <aside class="sidebar-left {% if is_chat_page %}chat-mode{% endif %}">
                 <div>
-                    <a href="{{ url_for('index') }}" class="sidebar-brand text-decoration-none">
-                        <span class="brand-logo">myownX</span>
-                    </a>
-                    
                     <ul class="sidebar-menu">
                         <li>
                             <a href="{{ url_for('index') }}" class="menu-item {% if request.path in ['/', '/feed'] %}active{% endif %}">
@@ -233,7 +230,7 @@
             <main class="main-content {% if is_chat_page %}chat-mode{% endif %}">
                 <!-- Sticky Header (Glassmorphism) -->
                 <div class="main-header d-none d-md-flex">
-                    <h1 class="main-header-title">{{ page_title }}</h1>
+                    <a href="{{ url_for('index') }}" class="main-header-brand">myownX</a>
                 </div>
                 
                 <!-- Main page content placeholder -->
