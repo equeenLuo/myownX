@@ -61,6 +61,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // ==================== Incremental feed loading ====================
+    document.body.addEventListener('click', async function(event) {
+        const trigger = event.target.closest('.js-load-more-posts');
+        if (!trigger || trigger.dataset.loading === 'true') return;
+
+        event.preventDefault();
+        trigger.dataset.loading = 'true';
+        trigger.setAttribute('aria-busy', 'true');
+        trigger.textContent = 'Loading posts...';
+
+        try {
+            const response = await fetch(trigger.href, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+            });
+            if (!response.ok) throw new Error('Feed request failed.');
+
+            const nextPage = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const currentFeed = document.getElementById('post-feed');
+            const nextFeed = nextPage.getElementById('post-feed');
+            if (!currentFeed || !nextFeed) throw new Error('Feed markup is unavailable.');
+
+            nextFeed.querySelectorAll('.post-card').forEach(function(card) {
+                currentFeed.appendChild(card);
+            });
+
+            const currentLoadMore = document.getElementById('load-more-container');
+            const nextLoadMore = nextPage.getElementById('load-more-container');
+            if (currentLoadMore && nextLoadMore) {
+                currentLoadMore.replaceWith(nextLoadMore);
+            } else if (currentLoadMore) {
+                currentLoadMore.remove();
+            }
+        } catch (error) {
+            trigger.dataset.loading = 'false';
+            trigger.removeAttribute('aria-busy');
+            trigger.textContent = 'Try loading posts again';
+        }
+    });
+
     // ==================== 发帖图片选择与本地预览逻辑 ====================
     // 初始化单个发帖表单的联动逻辑
     function initPostFormLogic(config) {

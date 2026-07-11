@@ -256,6 +256,8 @@ class MyownXFlowTests(unittest.TestCase):
         self.assertIn(b"Feed cache post 64", first_page.data)
         self.assertNotIn(b"Feed cache post 34", first_page.data)
         self.assertIn(b"/?page=2", first_page.data)
+        self.assertIn(b'id="post-feed"', first_page.data)
+        self.assertIn(b'js-load-more-posts', first_page.data)
 
         second_page = self.client.get("/?page=2")
         self.assertEqual(second_page.data.count(b'data-post-id="'), 30)

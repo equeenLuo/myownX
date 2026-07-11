@@ -35,7 +35,7 @@
 </div>
 
 <!-- Timeline Posts Feed -->
-<div class="post-feed">
+<div class="post-feed" id="post-feed">
     {% if posts %}
         {% for post in posts %}
             {% set display_post = post.repost_source if post.repost_source else post %}
@@ -149,9 +149,10 @@
         </div>
     {% endif %}
 
-    {% if has_more_posts|default(false) %}
-        <div class="text-center border-top p-3">
-            <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" href="{{ url_for(request.endpoint, page=feed_page + 1) }}">Load more posts</a>
-        </div>
-    {% endif %}
 </div>
+
+{% if has_more_posts|default(false) %}
+    <div class="text-center border-top p-3" id="load-more-container">
+        <a class="btn btn-outline-primary rounded-pill px-4 fw-bold js-load-more-posts" href="{{ url_for(request.endpoint, page=feed_page + 1) }}">Load more posts</a>
+    </div>
+{% endif %}
