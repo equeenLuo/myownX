@@ -7,7 +7,6 @@ instance/*.sqlite3
 docs/CONTRACT.md
 docs/PROJECT_BRIEF.md
 docs/TASK_BOARD.md
-README.md
 AGENTS.md
 docs/walkthrough.md
 static/uploads/*
