@@ -1358,15 +1358,25 @@ a:hover {
     margin-top: 2px;
 }
 
-/* 登录/注册表单卡片 */
+/* 登录、注册和密码重置悬浮卡片 */
+.auth-stage {
+    align-items: center;
+    background: rgba(15, 20, 25, 0.28);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+}
+
 .auth-container {
-    max-width: 450px;
-    margin: 80px auto;
-    padding: 32px;
-    border: 1px solid var(--myownx-border);
-    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
     background-color: #ffffff;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.03);
+    box-shadow: 0 18px 56px rgba(15, 20, 25, 0.24);
+    margin: 0;
+    max-width: 430px;
+    padding: 36px 32px 32px;
+    width: 100%;
 }
 
 .auth-logo {
@@ -1382,6 +1392,12 @@ a:hover {
     font-weight: 800;
     margin-bottom: 24px;
     color: var(--myownx-text);
+}
+
+.auth-description {
+    color: var(--myownx-muted);
+    font-size: 0.95rem;
+    margin: -12px 0 24px;
 }
 
 .form-group {
@@ -1428,11 +1444,60 @@ a:hover {
     background-color: var(--myownx-theme-hover);
 }
 
+.auth-secondary-link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 18px;
+    text-align: center;
+}
+
+.sign-in-modal .modal-dialog,
+.sign-up-modal .modal-dialog {
+    max-width: 430px;
+}
+
+.sign-in-modal .auth-container,
+.sign-up-modal .auth-container {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: none;
+    padding: 8px 4px 16px;
+}
+
+.sign-in-modal .modal-body,
+.sign-up-modal .modal-body {
+    padding-left: 28px;
+    padding-right: 28px;
+}
+
+.auth-link-button {
+    background: transparent;
+    border: 0;
+    color: var(--myownx-theme);
+    font: inherit;
+    padding: 0;
+}
+
 .auth-footer {
     text-align: center;
     margin-top: 24px;
     font-size: 0.9rem;
     color: var(--myownx-muted);
+}
+
+@media (max-width: 576px) {
+    .auth-stage {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .auth-container {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        max-width: none;
+        padding: 30px 24px 28px;
+    }
 }
 
 /* ==========================================================================
@@ -3980,6 +4045,11 @@ body {
     display: block;
     position: relative;
     z-index: 1;
+}
+
+/* Keep thread connectors above a hovered row, but never above its avatar mask. */
+.post-detail-container .reply-post-main {
+    z-index: auto;
 }
 
 .messages-search {

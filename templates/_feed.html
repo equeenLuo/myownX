@@ -3,7 +3,7 @@
     <img src="{{ user_avatar_url(current_user) }}" class="post-creator-avatar" alt="Avatar">
     <div class="post-creator-form">
         <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" id="pc-post-form">
-            <textarea class="post-creator-textarea" name="content" placeholder="What's happening?" rows="2" maxlength="280" id="pc-post-textarea"></textarea>
+            <textarea class="post-creator-textarea" name="content" placeholder="What's on your mind?" rows="2" maxlength="280" id="pc-post-textarea"></textarea>
             <!-- Local Image Preview Grid -->
             <div id="pc-image-preview-wrapper" class="post-image-preview-wrapper position-relative d-none mt-2 mb-2">
                 <div id="pc-image-preview-grid" class="post-image-preview-grid"></div>
@@ -146,6 +146,12 @@
             <h4 class="fw-bold">Welcome to your timeline!</h4>
             <p class="text-muted small mx-auto" style="max-width: 320px;">No posts on the timeline yet. Be the first to share your thoughts with the community!</p>
             <button class="btn btn-primary rounded-pill px-4 fw-bold mt-2" style="background-color: var(--myownx-theme); border: none;" data-bs-toggle="modal" data-bs-target="#postModal">Create First Post</button>
+        </div>
+    {% endif %}
+
+    {% if has_more_posts|default(false) %}
+        <div class="text-center border-top p-3">
+            <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" href="{{ url_for(request.endpoint, page=feed_page + 1) }}">Load more posts</a>
         </div>
     {% endif %}
 </div>

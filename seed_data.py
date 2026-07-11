@@ -18,6 +18,7 @@ ROOT_POST_COUNT = 1200
 DIRECT_REPLY_COUNT = 300
 NESTED_REPLY_COUNT = 60
 REPOST_COUNT = 180
+POST_IMAGE_EVERY = 8
 
 FIRST_NAMES = (
     "Avery", "Jordan", "Taylor", "Morgan", "Riley", "Casey", "Jamie", "Quinn", "Skyler", "Rowan",
@@ -35,6 +36,18 @@ BIOS = (
     "Interested in technology, education, sports, and thoughtful communities.",
     "Making time for music, movement, and one interesting idea each day.",
 )
+DEMO_ACCOUNT_PROFILES = {
+    "test1": ("Building a classroom demo one careful feature at a time.", ("a more useful empty state", "the final feed polish", "a cleaner reply flow")),
+    "test2": ("Collecting interface details, study notes, and good design references.", ("a navigation spacing pass", "a small accessibility improvement", "a photo from the desk setup")),
+    "test3": ("Learning Flask, keeping project notes, and sharing practical fixes.", ("a migration that finally behaved", "a test case worth keeping", "a quiet debugging win")),
+    "test4": ("Coffee, campus walks, and a growing list of thoughtful product ideas.", ("a campus café observation", "a short walk between classes", "a note from a design review")),
+    "test5": ("Exploring visual systems, small interactions, and approachable tools.", ("a color choice that simplified the screen", "a better loading state", "a small interaction that felt right")),
+    "test6": ("Trying to make technical projects easier to understand and explain.", ("a clearer project explanation", "a helpful peer review", "a change that reduced confusion")),
+    "test7": ("Balancing coursework, side projects, playlists, and late-night ideas.", ("a productive library session", "a playlist for focused work", "a side-project checkpoint")),
+    "test8": ("Interested in community building, writing, and the craft behind simple apps.", ("a useful community prompt", "a draft that became shorter", "a conversation worth revisiting")),
+    "test9": ("Sharing progress on design experiments and everyday learning.", ("a layout experiment", "a note from usability feedback", "a small before-and-after")),
+    "test10": ("Keeping a calm record of what worked, what changed, and what is next.", ("a retrospective note", "a small team win", "a plan for the next iteration")),
+}
 COLORS = (
     ("#1d9bf0", "#7dd3fc"), ("#7c3aed", "#c4b5fd"), ("#059669", "#6ee7b7"),
     ("#ea580c", "#fdba74"), ("#db2777", "#f9a8d4"), ("#2563eb", "#93c5fd"),
@@ -51,34 +64,42 @@ OPENERS = (
     "Small observation:", "Today I learned:", "A useful reminder:", "Quick update:", "Worth discussing:",
     "One thing that worked:", "Current favorite:", "A note for later:", "Unexpectedly good:", "Tiny win:",
 )
-DETAILS = (
-    "the simplest version was easier to understand and easier to maintain.",
-    "asking one precise question saved more time than another hour of guessing.",
-    "the details felt ordinary until everyone compared notes.",
-    "a short break made the next decision much clearer.",
-    "good defaults matter more than an impressive settings screen.",
-    "the best part was seeing people explain the same idea in different ways.",
-    "a little preparation turned a stressful task into a pleasant one.",
-    "the final result is quiet, practical, and ready to share.",
-    "there is still room to improve, but the direction now feels right.",
-    "this is exactly the kind of progress that is easy to miss day to day.",
-    "clear spacing and strong hierarchy changed the whole experience.",
-    "the conversation around it was more interesting than the headline.",
+POST_MOMENTS = (
+    "after a short review with a classmate", "while cleaning up notes from this morning", "during a quiet hour in the library",
+    "after comparing the first and second version side by side", "while preparing the next classroom demo", "between two focused work sessions",
+    "after a quick usability check", "while organizing a small project board", "after taking a break from a stubborn bug",
+    "during a walk back from campus", "while reviewing feedback from the group", "after a useful conversation over coffee",
 )
-ENDINGS = (
-    "What would you try next?", "Curious how other people approach this.", "Saving this for the next project.",
-    "That was enough progress for one day.", "A good reminder to keep the feedback loop short.",
-    "Would happily do this again.", "The small details really do add up.", "More notes after another test run.",
+POST_OBSERVATIONS = (
+    "The clearest option was also the one with the fewest moving parts.", "A little more space made the next action obvious.",
+    "Writing down the trade-off made the decision much easier.", "The first-time-user perspective changed what I wanted to keep.",
+    "The smallest adjustment had the biggest effect on the flow.", "It is easier to improve a feature once the purpose is written in one sentence.",
+    "A calm, predictable layout made the content feel more trustworthy.", "The best feedback was specific enough to act on right away.",
+    "Reducing one extra choice made the whole screen feel lighter.", "The draft improved as soon as I stopped trying to say everything at once.",
+    "Seeing the work in context answered more questions than another long discussion.", "The final version feels quieter, but much more intentional.",
 )
-REPLIES = (
-    "This matches my experience too. The smaller version is usually the clearer one.",
-    "I had not considered that angle, but it makes the trade-off much easier to see.",
-    "Good point. I would also test it with someone seeing the page for the first time.",
-    "The practical example helps a lot here. Saving this for later.",
-    "Agreed. Consistency is doing most of the work in this design.",
-    "That sounds like a solid improvement without adding unnecessary complexity.",
-    "I tried something similar last week and the feedback was surprisingly positive.",
-    "This is the kind of detail that makes a demo feel polished.",
+POST_NEXT_STEPS = (
+    "I am saving that approach for the next pass.", "Next I want to test it with someone new to the project.",
+    "It is a good reminder to keep the feedback loop short.", "I will keep the change and watch how it holds up tomorrow.",
+    "That is enough progress for today, and it feels like the right kind.", "I am curious what a different team would notice first.",
+    "The next step is to document it before the context disappears.", "I would happily repeat this process on the next feature.",
+)
+REPLY_STARTS = (
+    "I had a similar reaction.", "That is a helpful way to frame it.", "This is a good reminder.", "I like the practical example here.",
+    "That trade-off makes sense to me.", "I ran into something close to this last week.", "The timing of this note is perfect.",
+    "I had not considered that angle before.", "This makes the decision feel much clearer.", "I am glad you wrote this down.",
+)
+REPLY_DETAILS = (
+    "Keeping the first version small usually reveals what actually matters.", "A fresh pair of eyes catches the assumptions we stop seeing.",
+    "The part about reducing friction is especially useful.", "It is easier to trust a change when the reason is visible in the interface.",
+    "I would keep the experiment and compare it again after a few days.", "The simple explanation is often the best test of whether the idea is ready.",
+    "That is the kind of detail that makes a demo feel considered.", "I am adding this to my own checklist for the next review.",
+    "The example makes the benefit much easier to picture.", "This is a stronger result than adding another layer of complexity.",
+)
+REPLY_NEXT_STEPS = (
+    "I would be interested to hear what changed after another round of feedback.", "Saving this as a reference for later.",
+    "A small follow-up test could make the next decision even easier.", "Thanks for sharing the process, not just the result.",
+    "It makes me want to revisit one of my own drafts.", "That feels like a good direction to keep exploring.",
 )
 CHAT_LINES = (
     "Hey! Are you free to review the demo flow today?",
@@ -118,7 +139,7 @@ def _write_profile_assets(static_folder, index, display_name):
     return f"uploads/avatars/{avatar_name}", f"uploads/banners/{banner_name}"
 
 
-def _write_post_assets(static_folder, count=48):
+def _write_post_assets(static_folder, count=72):
     post_dir = Path(static_folder) / "uploads" / "posts"
     post_dir.mkdir(parents=True, exist_ok=True)
     paths = []
@@ -132,12 +153,39 @@ def _write_post_assets(static_folder, count=48):
     return paths
 
 
-def _post_content(index):
+def _profile_bio(username, index):
+    return DEMO_ACCOUNT_PROFILES.get(username, (BIOS[index % len(BIOS)], ()))[0]
+
+
+def _root_post_content(index, author, author_post_number):
+    profile = DEMO_ACCOUNT_PROFILES.get(author.username)
+    topic_pool = profile[1] if profile else TOPICS
+    topic = topic_pool[author_post_number % len(topic_pool)]
     return (
-        f"{OPENERS[index % len(OPENERS)]} {TOPICS[(index // len(OPENERS)) % len(TOPICS)]} — "
-        f"{DETAILS[(index // (len(OPENERS) * len(TOPICS))) % len(DETAILS)]} "
-        f"{ENDINGS[(index * 7 + index // 200) % len(ENDINGS)]}"
+        f"{OPENERS[index % len(OPENERS)]} I spent some time with {topic} {POST_MOMENTS[(index * 3) % len(POST_MOMENTS)]}. "
+        f"{POST_OBSERVATIONS[(index * 5 + author_post_number) % len(POST_OBSERVATIONS)]} "
+        f"{POST_NEXT_STEPS[(index * 7 + author_post_number) % len(POST_NEXT_STEPS)]}"
     )
+
+
+def _reply_content(index, depth=0):
+    prefix = "Following up, " if depth else ""
+    return (
+        f"{prefix}{REPLY_STARTS[index % len(REPLY_STARTS)]} "
+        f"{REPLY_DETAILS[(index * 3 + depth) % len(REPLY_DETAILS)]} "
+        f"{REPLY_NEXT_STEPS[(index * 5 + depth) % len(REPLY_NEXT_STEPS)]}"
+    )
+
+
+def _unique_content(content, used_contents, index):
+    if content in used_contents:
+        content = f"{content} I am keeping this as note {index + 1} for the next review."
+    suffix = 2
+    while content in used_contents:
+        content = f"{content} ({suffix})"
+        suffix += 1
+    used_contents.add(content)
+    return content
 
 
 def seed_demo_data(flask_app, reset=False):
@@ -154,7 +202,7 @@ def seed_demo_data(flask_app, reset=False):
         password_hash = generate_password_hash(DEMO_PASSWORD)
         generate_assets = not flask_app.config.get("TESTING", False)
         post_asset_paths = _write_post_assets(flask_app.static_folder) if generate_assets else [
-            f"uploads/posts/demo-post-{index + 1:03d}.svg" for index in range(48)
+            f"uploads/posts/demo-post-{index + 1:03d}.svg" for index in range(72)
         ]
 
         users = []
@@ -168,8 +216,9 @@ def seed_demo_data(flask_app, reset=False):
             users.append(
                 User(
                     username=username,
+                    email=f"{username}@example.test",
                     display_name=display_name,
-                    bio=BIOS[index % len(BIOS)],
+                    bio=_profile_bio(username, index),
                     password_hash=password_hash,
                     profile_picture_path=avatar_path,
                     profile_banner_path=banner_path,
@@ -196,13 +245,22 @@ def seed_demo_data(flask_app, reset=False):
         db.session.add_all(follows)
 
         root_posts = []
+        used_post_contents = set()
         for index in range(ROOT_POST_COUNT):
-            has_media = index % 25 == 0
+            author = users[index % len(users)]
+            author_post_number = index // len(users)
+            has_media = index % POST_IMAGE_EVERY == 0 or (
+                author.username in TEST_USERNAMES and author_post_number in {0, 5}
+            )
             root_posts.append(
                 Post(
-                    user_id=users[index % len(users)].id,
-                    content=_post_content(index),
-                    media_path=post_asset_paths[(index // 25) % len(post_asset_paths)] if has_media else None,
+                    user_id=author.id,
+                    content=_unique_content(
+                        _root_post_content(index, author, author_post_number),
+                        used_post_contents,
+                        index,
+                    ),
+                    media_path=post_asset_paths[(index // POST_IMAGE_EVERY) % len(post_asset_paths)] if has_media else None,
                     media_type="image" if has_media else "text",
                     created_at=now - timedelta(minutes=5 + index * 47),
                 )
@@ -219,7 +277,11 @@ def seed_demo_data(flask_app, reset=False):
             direct_replies.append(
                 Post(
                     user_id=author.id,
-                    content=REPLIES[index % len(REPLIES)],
+                    content=_unique_content(
+                        _reply_content(index),
+                        used_post_contents,
+                        ROOT_POST_COUNT + index,
+                    ),
                     media_type="text",
                     reply_to_post_id=parent.id,
                     created_at=parent.created_at + timedelta(minutes=12 + index % 90),
@@ -235,7 +297,11 @@ def seed_demo_data(flask_app, reset=False):
             nested_replies.append(
                 Post(
                     user_id=author.id,
-                    content=f"Following up: {REPLIES[(index + 3) % len(REPLIES)]}",
+                    content=_unique_content(
+                        _reply_content(index, depth=1),
+                        used_post_contents,
+                        ROOT_POST_COUNT + DIRECT_REPLY_COUNT + index,
+                    ),
                     media_type="text",
                     reply_to_post_id=parent.id,
                     created_at=parent.created_at + timedelta(minutes=18 + index),

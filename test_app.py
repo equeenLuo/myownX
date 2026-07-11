@@ -40,10 +40,11 @@ class MyownXFlowTests(unittest.TestCase):
             Path(uploaded_path).unlink(missing_ok=True)
         shutil.rmtree(self.temp_dir)
 
-    def create_user(self, username, display_name=None):
+    def create_user(self, username, display_name=None, email=None):
         with self.app.app_context():
             user = User(
                 username=username,
+                email=email or f"{username}@example.test",
                 display_name=display_name or username.title(),
                 password_hash=generate_password_hash("password123"),
             )
@@ -66,7 +67,12 @@ class MyownXFlowTests(unittest.TestCase):
 
         response = self.client.post(
             "/register",
-            data={"username": "alice", "display_name": "Alice", "password": "password123"},
+            data={
+                "username": "alice",
+                "email": "alice@example.test",
+                "display_name": "Alice",
+                "password": "password123",
+            },
             follow_redirects=True,
         )
         self.assertEqual(response.status_code, 200)
@@ -156,6 +162,111 @@ class MyownXFlowTests(unittest.TestCase):
                 ).count(),
                 0,
             )
+
+    def test_registration_email_and_password_reset(self):
+        register_page = self.client.get("/register")
+        self.assertIn(b'id="signUpModal"', register_page.data)
+        self.assertIn(b'data-auto-show="true"', register_page.data)
+
+        response = self.client.post(
+            "/register",
+            data={
+                "username": "resetuser",
+                "email": "reset@example.test",
+                "display_name": "Reset User",
+                "password": "original-password",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.logout()
+
+        invalid_match = self.client.post(
+            "/forgot-password",
+            data={"username": "resetuser", "email": "wrong@example.test"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"We could not verify that username and email.", invalid_match.data)
+
+        verified_match = self.client.post(
+            "/forgot-password",
+            data={"username": "resetuser", "email": "reset@example.test"},
+            follow_redirects=False,
+        )
+        self.assertEqual(verified_match.status_code, 302)
+        self.assertEqual(verified_match.headers["Location"], "/reset-password")
+
+        mismatch = self.client.post(
+            "/reset-password",
+            data={"password": "new-password", "password_confirmation": "different-password"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"New passwords do not match.", mismatch.data)
+
+        reset = self.client.post(
+            "/reset-password",
+            data={"password": "new-password", "password_confirmation": "new-password"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Password reset successfully. Please sign in.", reset.data)
+
+        old_password = self.client.post(
+            "/login",
+            data={"username": "resetuser", "password": "original-password"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Invalid username or password.", old_password.data)
+        self.assertIn(b'id="signInModal"', old_password.data)
+        self.assertIn(b'data-auto-show="true"', old_password.data)
+
+        new_password = self.client.post(
+            "/login",
+            data={"username": "resetuser", "password": "new-password"},
+            follow_redirects=False,
+        )
+        self.assertEqual(new_password.status_code, 302)
+
+    def test_settings_hides_system_info(self):
+        self.create_user("settingsuser", "Settings User")
+        self.login("settingsuser")
+
+        settings_page = self.client.get("/settings")
+        self.assertEqual(settings_page.status_code, 200)
+        self.assertIn(b'name="is_private"', settings_page.data)
+        self.assertIn(b'name="allow_dms"', settings_page.data)
+        self.assertNotIn(b"System Info", settings_page.data)
+
+    def test_home_feed_uses_bounded_pages(self):
+        author_id = self.create_user("feedauthor", "Feed Author")
+        with self.app.app_context():
+            posts = [
+                Post(
+                    user_id=author_id,
+                    content=f"Feed cache post {number}",
+                    created_at=datetime(2026, 7, 1, 12, 0, 0) + timedelta(seconds=number),
+                )
+                for number in range(65)
+            ]
+            db.session.add_all(posts)
+            db.session.commit()
+
+        first_page = self.client.get("/")
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.data.count(b'data-post-id="'), 30)
+        self.assertIn(b"Feed cache post 64", first_page.data)
+        self.assertNotIn(b"Feed cache post 34", first_page.data)
+        self.assertIn(b"/?page=2", first_page.data)
+
+        second_page = self.client.get("/?page=2")
+        self.assertEqual(second_page.data.count(b'data-post-id="'), 30)
+        self.assertIn(b"Feed cache post 34", second_page.data)
+        self.assertNotIn(b"Feed cache post 4", second_page.data)
+        self.assertIn(b"/?page=3", second_page.data)
+
+        final_page = self.client.get("/?page=3")
+        self.assertEqual(final_page.data.count(b'data-post-id="'), 5)
+        self.assertIn(b"Feed cache post 4", final_page.data)
+        self.assertNotIn(b"Load more posts", final_page.data)
 
     def test_private_visibility_repost_protection_and_direct_message_permission(self):
         alice_id = self.create_user("alice", "Alice")
@@ -643,10 +754,28 @@ class MyownXFlowTests(unittest.TestCase):
 
         with self.app.app_context():
             self.assertEqual(User.query.filter(User.username.in_(DEMO_USERNAMES)).count(), len(DEMO_USERNAMES))
+            original_posts = (
+                Post.query.filter(Post.reply_to_post_id.is_(None), Post.repost_from_id.is_(None))
+                .order_by(Post.id)
+                .all()
+            )
+            original_contents = [post.content for post in original_posts]
+            self.assertEqual(len(original_contents), len(set(original_contents)))
+            self.assertGreaterEqual(
+                sum(post.media_type == "image" for post in original_posts),
+                len(original_posts) // 8,
+            )
             for index in range(1, 11):
                 user = User.query.filter_by(username=f"test{index}").one()
                 self.assertEqual(user.display_name, f"test{index}")
                 self.assertTrue(user.profile_picture_path.endswith(f"demo-avatar-{index:03d}.svg"))
+                self.assertTrue(user.bio)
+                self.assertTrue(
+                    Post.query.filter_by(user_id=user.id, media_type="image", repost_from_id=None)
+                    .filter(Post.reply_to_post_id.is_(None))
+                    .count()
+                    >= 1
+                )
                 self.assertTrue(user.profile_banner_path.endswith(f"demo-banner-{index:03d}.svg"))
             self.assertEqual(Conversation.query.count(), summary["conversations"])
             self.assertGreater(ConversationMember.query.count(), summary["conversations"] * 2)

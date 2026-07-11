@@ -38,6 +38,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ==================== Sign-in modal ====================
+    document.querySelectorAll('.auth-modal[data-auto-show="true"]').forEach(function(modalElement) {
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    });
+
+    document.querySelectorAll('[data-auth-modal-target]').forEach(function(trigger) {
+        trigger.addEventListener('click', function() {
+            const target = document.getElementById(trigger.dataset.authModalTarget);
+            const currentModal = trigger.closest('.modal');
+            const showTarget = function() {
+                if (target) {
+                    bootstrap.Modal.getOrCreateInstance(target).show();
+                }
+            };
+            if (currentModal && currentModal.classList.contains('show')) {
+                currentModal.addEventListener('hidden.bs.modal', showTarget, { once: true });
+                bootstrap.Modal.getInstance(currentModal)?.hide();
+            } else {
+                showTarget();
+            }
+        });
+    });
+
     // ==================== 发帖图片选择与本地预览逻辑 ====================
     // 初始化单个发帖表单的联动逻辑
     function initPostFormLogic(config) {

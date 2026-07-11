@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from sqlalchemy import func, inspect, text
 from werkzeug.utils import secure_filename
@@ -27,6 +27,8 @@ MAX_COMMENT_LENGTH = 280
 MAX_MESSAGE_LENGTH = 1000
 MAX_SEARCH_QUERY_LENGTH = 100
 MAX_SEARCH_RESULTS = 50
+FEED_PAGE_SIZE = 30
+PASSWORD_RESET_TTL_SECONDS = 15 * 60
 
 
 @login_manager.user_loader
@@ -69,6 +71,9 @@ def ensure_schema_updates(app):
             user_columns = {column["name"] for column in inspector.get_columns("users")}
             if "profile_banner_path" not in user_columns:
                 connection.execute(text("ALTER TABLE users ADD COLUMN profile_banner_path VARCHAR(255)"))
+            if "email" not in user_columns:
+                connection.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"))
 
         if "posts" in table_names:
             post_columns = {column["name"] for column in inspector.get_columns("posts")}
@@ -602,9 +607,17 @@ def create_app(config_class=Config):
     def health():
         return jsonify({"app": "myownX", "status": "ok"})
 
-    def latest_posts():
-        posts = Post.query.order_by(Post.created_at.desc()).all()
-        return [post for post in posts if can_view_post(post)]
+    def latest_posts(page):
+        """Return one bounded feed page and whether another candidate page exists."""
+        page = max(page, 1)
+        candidate_posts = (
+            Post.query.order_by(Post.created_at.desc(), Post.id.desc())
+            .offset((page - 1) * FEED_PAGE_SIZE)
+            .limit(FEED_PAGE_SIZE + 1)
+            .all()
+        )
+        has_more = len(candidate_posts) > FEED_PAGE_SIZE
+        return [post for post in candidate_posts[:FEED_PAGE_SIZE] if can_view_post(post)], has_more
 
     def requested_profile_tab():
         tab = request.args.get("tab", "posts").lower()
@@ -638,14 +651,44 @@ def create_app(config_class=Config):
     def placeholder(page_title, **context):
         return render_template("placeholder.html", page_title=page_title, **context)
 
+    def password_reset_user():
+        user_id = session.get("password_reset_user_id")
+        requested_at = session.get("password_reset_requested_at")
+        try:
+            expired = datetime.now(timezone.utc).timestamp() - float(requested_at) > PASSWORD_RESET_TTL_SECONDS
+            user = db.session.get(User, int(user_id))
+        except (TypeError, ValueError):
+            expired = True
+            user = None
+
+        if expired or not user:
+            session.pop("password_reset_user_id", None)
+            session.pop("password_reset_requested_at", None)
+            return None
+        return user
+
     @app.get("/")
     def index():
-        return placeholder("首页", posts=latest_posts())
+        page = max(request.args.get("page", default=1, type=int), 1)
+        posts, has_more_posts = latest_posts(page)
+        return placeholder(
+            "首页",
+            posts=posts,
+            feed_page=page,
+            has_more_posts=has_more_posts,
+        )
 
     @app.get("/feed")
     @login_required
     def feed():
-        return placeholder("信息流", posts=latest_posts())
+        page = max(request.args.get("page", default=1, type=int), 1)
+        posts, has_more_posts = latest_posts(page)
+        return placeholder(
+            "信息流",
+            posts=posts,
+            feed_page=page,
+            has_more_posts=has_more_posts,
+        )
 
     @app.get("/posts/<int:post_id>")
     def post_detail(post_id):
@@ -1290,12 +1333,12 @@ def create_app(config_class=Config):
 
             if not user or not check_password_hash(user.password_hash, password):
                 flash("Invalid username or password.", "error")
-                return placeholder("登录")
+                return render_template("login.html", page_title="Sign in")
 
             login_user(user)
             return redirect(url_for("feed"))
 
-        return placeholder("登录")
+        return render_template("login.html", page_title="Sign in")
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -1304,19 +1347,25 @@ def create_app(config_class=Config):
 
         if request.method == "POST":
             username = request.form.get("username", "").strip()
+            email = request.form.get("email", "").strip().lower()
             display_name = request.form.get("display_name", "").strip()
             password = request.form.get("password", "")
 
-            if not username or not display_name or not password:
-                flash("Username, display name, and password are required.", "error")
-                return placeholder("注册")
+            if not username or not email or not display_name or not password:
+                flash("Username, email, display name, and password are required.", "error")
+                return render_template("register.html", page_title="Create account")
 
             if User.query.filter_by(username=username).first():
                 flash("Username is already taken. Please choose another one.", "error")
-                return placeholder("注册")
+                return render_template("register.html", page_title="Create account")
+
+            if User.query.filter_by(email=email).first():
+                flash("Email is already registered. Please use another email.", "error")
+                return render_template("register.html", page_title="Create account")
 
             user = User(
                 username=username,
+                email=email,
                 display_name=display_name,
                 password_hash=generate_password_hash(password),
             )
@@ -1325,7 +1374,58 @@ def create_app(config_class=Config):
             login_user(user)
             return redirect(url_for("feed"))
 
-        return placeholder("注册")
+        return render_template("register.html", page_title="Create account")
+
+    @app.route("/forgot-password", methods=["GET", "POST"])
+    def forgot_password():
+        if current_user.is_authenticated:
+            return redirect(url_for("feed"))
+
+        if request.method == "POST":
+            username = request.form.get("username", "").strip()
+            email = request.form.get("email", "").strip().lower()
+            user = User.query.filter_by(username=username, email=email).first()
+
+            if not user:
+                flash("We could not verify that username and email.", "error")
+                return render_template("forgot_password.html", page_title="Forgot password")
+
+            session["password_reset_user_id"] = user.id
+            session["password_reset_requested_at"] = datetime.now(timezone.utc).timestamp()
+            return redirect(url_for("reset_password"))
+
+        return render_template("forgot_password.html", page_title="Forgot password")
+
+    @app.route("/reset-password", methods=["GET", "POST"])
+    def reset_password():
+        if current_user.is_authenticated:
+            return redirect(url_for("feed"))
+
+        user = password_reset_user()
+        if not user:
+            flash("Verify your username and email before resetting your password.", "error")
+            return redirect(url_for("forgot_password"))
+
+        if request.method == "POST":
+            password = request.form.get("password", "")
+            password_confirmation = request.form.get("password_confirmation", "")
+
+            if not password or not password_confirmation:
+                flash("Enter your new password twice.", "error")
+                return render_template("reset_password.html", page_title="Reset password")
+
+            if password != password_confirmation:
+                flash("New passwords do not match.", "error")
+                return render_template("reset_password.html", page_title="Reset password")
+
+            user.password_hash = generate_password_hash(password)
+            db.session.commit()
+            session.pop("password_reset_user_id", None)
+            session.pop("password_reset_requested_at", None)
+            flash("Password reset successfully. Please sign in.", "success")
+            return redirect(url_for("login"))
+
+        return render_template("reset_password.html", page_title="Reset password")
 
     @app.post("/logout")
     def logout():
